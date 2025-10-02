@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Database Reminder Kendaraan - Dishub</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"/>
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css"/>
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* ---------- Visual / Theme ---------- */
+    :root{
+      --bg1: #f6fbff;
+      --accent1: #81d4fa;
+      --accent2: #7ef6d7;
+      --muted: #6b7280;
+      --card-shadow: 0 10px 30px rgba(38,50,56,0.06);
+    }
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(120deg, #f8fafc 0%, #e9f4ff 60%, #f1f6f9 100%);
+      color: #1f2937;
+      padding: 30px 18px;
+    }
+
+    .header-title{
+    background: linear-gradient(90deg,#00e676,#00bcd4,#448aff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    font-weight:700;
+    font-size:28px;
+    }
+    .card-surface{
+      background: rgba(255,255,255,0.98);
+      border-radius: 14px;
+      box-shadow: var(--card-shadow);
+      padding: 22px;
+    }
+
+    /* Stats cards */
+    .stat-card{
+      border-radius: 14px;
+      padding: 18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      min-height: 96px;
+    }
+    .stat-left{font-weight:700}
+    .stat-sub{font-size:12px;color:var(--muted)}
+
+    /* Table look */
+    .table-card{
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+    }
+    .table thead th{
+      background: linear-gradient(90deg,#b3c6ff,#81ecec);
+      color: #1f2937;
+      font-weight:600;
+      font-size:13px;
+    }
+    .badge-status { font-weight:600; padding:6px 10px; border-radius:999px; font-size:12px; display:inline-block;}
+    .badge-success { background:#e6f8ef; color:#0f9d58; border:1px solid rgba(15,157,88,0.08); }
+    .badge-warning { background:#fff8e8; color:#a16207; border:1px solid rgba(161,98,7,0.08); }
+    .badge-danger { background:#fff0f1; color:#be123c; border:1px solid rgba(190,18,60,0.08); }
+    .badge-secondary { background:#f0f4f8; color:#475569; border:1px solid rgba(71,85,105,0.05); }
+
+    /* Buttons modern */
+    .btn-modern { border-radius:12px; padding:10px 16px; font-weight:600; box-shadow: 0 6px 18px rgba(60,64,67,0.06); }
+    .btn-add { background: linear-gradient(135deg,#5eead4,#60a5fa); border:none; color:#04243a; }
+    .btn-refresh { background:#fff; border:1px solid #e6eef9; color:#1f2937; }
+      .btn-logout {
+        background: linear-gradient(135deg, #6ac030, #0bff03);
+        border: none;
+        color: #ffffff;
+      }
+
+    /* small helpers */
+    .controls { display:flex; gap:12px; align-items:center; }
+    .search-input{ border-radius:12px; padding:10px 14px; border:1px solid #e6eef9; width:320px; }
+
+    /* responsive */
+    @media (max-width: 900px){
+      .stats-grid{ grid-template-columns: repeat(1,1fr) !important; }
+      .search-input{ width:100%; }
+    }
+
+    .status-filter-card.active-card {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white !important;
+      transform: translateY(-5px) scale(1.03);
+      box-shadow: 0 6px 15px rgba(59,130,246,0.4);
+      transition: all 0.3s ease-in-out;
+    }
+    .status-filter-card.active-card h6,
+    .status-filter-card.active-card h3,
+    .status-filter-card.active-card i {
+      color: white !important;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row mb-4 align-items-start">
+      <div class="col-8">
+        <div class="header-title">Dashboard Database Reminder Kendaraan</div>
+        <div class="text-muted" style="margin-top:6px">Database sistem manajemen pengingat uji kendaraan Dishub</div>
+      </div>
+      <div class="col-4 text-end">
+        <div class="d-inline-block">
+      <button id="btnRefresh" class="btn btn-refresh btn-modern"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</button>
+      <button id="btnAdd" class="btn btn-add btn-modern ms-2"><i class="bi bi-plus-lg me-2"></i>Tambah Data</button>
+      <button id="btnLogout" class="btn btn-logout btn-modern ms-2"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- top stats (diganti dengan status summary) -->
+    <div class="row mb-4" id="statusSummary">
+      <!-- Akan diisi via JS -->
+    </div>
+
+    <!-- table area -->
+    <div class="row">
+      <div class="col-12">
+        <div class="table-card bg-white">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-0">Data Reminder</h5>
+              <small class="text-muted">Data pengingat uji kendaraan</small>
+            </div>
+
+            <div class="controls">
+              <input id="searchBox" class="search-input" placeholder="Cari nama, NIK, atau no kendaraan..." />
+              <button id="exportBtn" class="btn btn-outline-secondary btn-modern"><i class="bi bi-download me-1"></i>Export</button>
+            </div>
+          </div>
+
+          <div class="p-3">
+            <table id="reminderTable" class="table table-hover nowrap" style="width:100%">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nama</th>
+                  <th>No Kendaraan</th>
+                  <th>No Uji</th>
+                  <th>Jenis Kendaraan</th>
+                  <th>Tanggal Uji</th>
+                  <th>Telepon</th>
+                  <th>Status</th>
+                  <th>Dibuat</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form id="formReminder" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Tambah Reminder</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="reminderId" />
+          <div class="mb-3">
+            <label class="form-label">Nama Pemilik <span class="text-muted" style="font-size:12px">(Sesuai STNK/KTP)</span></label>
+            <input name="name" id="fName" class="form-control" required placeholder="Nama sesuai STNK/KTP" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">No Kendaraan</label>
+            <input name="vehicle_number" id="fVehicle" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">No Uji</label>
+            <input name="no_uji" id="fNoUji" class="form-control" required placeholder="SLO 6798/BDG/6543/DPR 5890/JKT 3417" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Jenis Kendaraan</label>
+            <select name="jenis_kendaraan" id="fJenisKendaraan" class="form-control" required>
+              <option value="">Pilih Jenis Kendaraan</option>
+              <option value="Truck">Truck</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Mobil barang">Mobil barang</option>
+              <option value="Tronton">Tronton</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tanggal Uji</label>
+            <input type="date" name="test_date" id="fDate" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Telepon</label>
+            <input name="phone" id="fPhone" class="form-control" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-modern">Simpan</button>
+          <button type="button" class="btn btn-outline-secondary btn-modern" data-bs-dismiss="modal">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row mb-4" id="statusSummary">
+  <!-- Card indikator akan diisi lewat JS -->
+</div>
+
+<script>
+async function loadSummary() {
+  const res = await fetch("/list?format=json");
+  const data = await res.json();
+
+  const counts = { expired: 0, today: 0, h1: 0, h2: 0, h3: 0 };
+
+  data.forEach(r => {
+    switch(r.status) {
+      case "Expired": counts.expired++; break;
+      case "H (today)": counts.today++; break;
+      case "H-1": counts.h1++; break;
+      case "H-2": counts.h2++; break;
+      case "H-3 or more": counts.h3++; break;
+    }
+  });
+
+  const mapping = [
+    {label: "Expired", count: counts.expired, color: "secondary", icon: "bi-x-circle-fill"},
+    {label: "H (today)", count: counts.today, color: "danger", icon: "bi-calendar-day"},
+    {label: "H-1", count: counts.h1, color: "warning", icon: "bi-calendar-minus"},
+    {label: "H-2", count: counts.h2, color: "primary", icon: "bi-calendar-event"},
+    {label: "H-3+", count: counts.h3, color: "success", icon: "bi-calendar-check"}
+  ];
+
+  const container = document.getElementById("statusSummary");
+  container.innerHTML = mapping.map(m => `
+    <div class="col-md-2">
+      <div class="card text-center border-${m.color} shadow-sm status-filter-card" data-status="${m.label}">
+        <div class="card-body">
+          <div class="mb-2"><i class="bi ${m.icon} text-${m.color}" style="font-size:26px"></i></div>
+          <h6 class="card-title text-${m.color}">${m.label}</h6>
+          <h3>${m.count}</h3>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  // filter event
+  let lastStatus = null;
+  document.querySelectorAll('.status-filter-card').forEach(card => {
+    card.addEventListener('click', function() {
+      let status = this.getAttribute('data-status');
+      if (status === "H-3+") status = "H-3 or more";  // mapping
+
+      if (lastStatus === status) {
+        // Reset filter
+        window.table.column(7).search('').draw();
+        lastStatus = null;
+        // Hilangkan highlight semua card
+        document.querySelectorAll('.status-filter-card').forEach(c => {
+          c.classList.remove("active-card");
+        });
+      } else {
+        // Terapkan filter
+        window.table.column(7).search('^' + status + '$', true, false).draw();
+        lastStatus = status;
+        // Reset highlight lalu aktifkan card ini
+        document.querySelectorAll('.status-filter-card').forEach(c => {
+          c.classList.remove("active-card");
+        });
+        this.classList.add("active-card");
+      }
+    });
+  });
+}
+
+// panggil saat load halaman
+loadSummary();
+</script>
+
+
+  <!-- Dependencies -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- DataTables -->
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    // === Logout ===
+    document.addEventListener("DOMContentLoaded", () => {
+      const btnLogout = document.getElementById("btnLogout");
+      if (btnLogout) {
+        btnLogout.addEventListener("click", () => {
+          Swal.fire({
+            title: 'Logout?',
+            text: 'Anda akan keluar dari Dashboard',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Logout',
+            cancelButtonText: 'Batal'
+          }).then(result => {
+            if (result.isConfirmed) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Logout',
+                showConfirmButton: false,
+                timer: 1200
+              });
+              setTimeout(() => {
+                window.location.href = "http://127.0.0.1:5000/"; // redirect ke home
+              }, 1300);
+            }
+          });
+        });
+      }
+    });
+  </script>
+
+  <script>
+    // Disable default DataTables alert and handle ajax errors gracefully
+    $.fn.dataTable.ext.errMode = 'none';
+
+    const apiList = '/list?format=json';
+    const apiAdd = '/add';
+    const apiEdit = (id) => `/edit/${id}`;
+    const apiDelete = (id) => `/delete/${id}`;
+
+    // normalize phone like backend expects (62...)
+    function normalizePhone(phone) {
+      if (!phone) return "";
+      phone = phone.trim().replace(/\s+/g,'').replace(/-/g,'');
+      if (phone.startsWith('+')) phone = phone.slice(1);
+      if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+      if (!phone.startsWith('62')) phone = '62' + phone;
+      return phone;
+    }
+
+    let table;
+    $(document).ready(function(){
+      // Initialize DataTable
+      table = $('#reminderTable').DataTable({
+        ajax: {
+          url: apiList,
+          dataSrc: '',
+          error: function(xhr, status, error){
+            console.error('DataTables Ajax error', status, error, xhr);
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal memuat data',
+              text: 'Tidak dapat memuat data dari server. Cek server backend atau konsol browser.'
+            });
+          }
+        },
+        columns: [
+          { data: 'id', width: '4%' },
+          { data: 'name' },
+          { data: 'vehicle_number' },
+          { data: 'no_uji', defaultContent: '-' },
+          { data: 'jenis_kendaraan', defaultContent: '-' },
+          { data: 'test_date' },
+          { data: 'phone', defaultContent: '-' },
+          {
+            data: null,
+            render: function(d){
+              const s = (d && d.status) ? d.status : 'Unknown';
+              let cls = 'badge-secondary';
+              switch (s) {
+                case 'Expired': cls = 'badge-secondary'; break;
+                case 'H (today)': cls = 'badge-danger'; break;
+                case 'H-1': cls = 'badge-warning'; break;
+                case 'H-3 or more': cls = 'badge-success'; break;
+                default: cls = 'badge-secondary';
+              }
+              return `<span class="badge-status ${cls}">${s}</span>`;
+            },
+            orderable: false,
+            width: '12%'
+          },
+          { data: 'created_at', width: '10%' },
+          {
+            data: null,
+            render: function(d){
+              return `
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-light btn-edit" data-id="${d.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${d.id}" title="Hapus"><i class="bi bi-trash"></i></button>
+                </div>`;
+            },
+            orderable: false,
+            width: '9%'
+          }
+        ],
+        order: [[6, 'asc']],
+        pageLength: 10,
+        lengthChange: false,
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            text: '<i class="bi bi-file-earmark-spreadsheet-fill"></i> Excel',
+            className: 'btn btn-sm btn-success',
+            title: 'Reminder_Data'
+          }
+        ],
+        initComplete: function(){
+          // hide default buttons, we'll use our own export button
+          $('.dt-button').addClass('d-none');
+          loadSummary(); // ✅ render summary + filter
+        }
+      });
+      window.table = table; // pastikan global
+
+      // Status filter event (pindahkan ke sini agar pasti setelah DataTable siap)
+      let lastStatus = null;
+      $(document).on('click', '.status-filter-card', function() {
+        const status = $(this).data('status');
+        let searchVal = status;
+        if (status === 'H-3+') searchVal = 'H-3 or more';
+        if (lastStatus === searchVal) {
+          table.column(7).search('').draw();
+          lastStatus = null;
+        } else {
+          table.column(7).search('^' + searchVal + '$', true, false).draw();
+          lastStatus = searchVal;
+        }
+      });
+
+      // wire custom search box to datatable
+      $('#searchBox').on('input', function(){
+        table.search(this.value).draw();
+      });
+
+      // custom Export button triggers datatable export
+      $('#exportBtn').on('click', function(){
+        table.button('.buttons-excel').trigger();
+      });
+
+      // Refresh
+      $('#btnRefresh').on('click', function(){
+        table.ajax.reload(null, false);
+        // Reset filter status dan highlight card
+        table.column(7).search('').draw();
+        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Data sudah di-refresh', showConfirmButton:false, timer:1600 });
+        loadSummary(); // pastikan summary juga update
+      });
+
+      // Add button opens modal
+      const modal = new bootstrap.Modal(document.getElementById('modalForm'));
+      $('#btnAdd').on('click', function(){
+        $('#modalTitle').text('Tambah Reminder Baru');
+        $('#reminderId').val('');
+        $('#formReminder')[0].reset();
+        modal.show();
+      });
+
+      // Edit button (delegated)
+      $('#reminderTable tbody').on('click', '.btn-edit', function(){
+        const id = $(this).data('id');
+        fetch(apiList).then(r=>r.json()).then(data=>{
+          const row = data.find(x=>x.id == id);
+          if (!row) { Swal.fire('Data tidak ditemukan'); return; }
+          $('#modalTitle').text('Edit Reminder');
+          $('#reminderId').val(row.id);
+          $('#fName').val(row.name);
+          $('#fVehicle').val(row.vehicle_number);
+          $('#fNoUji').val(row.no_uji || '');
+          $('#fJenisKendaraan').val(row.jenis_kendaraan || '');
+          $('#fDate').val(row.test_date);
+          $('#fPhone').val(row.phone || '');
+          modal.show();
+        }).catch(err=>{
+          console.error(err);
+          Swal.fire('Error', 'Gagal mengambil data untuk edit', 'error');
+        });
+      });
+
+      // Delete button (delegated)
+      $('#reminderTable tbody').on('click', '.btn-delete', function(){
+        const id = $(this).data('id');
+        Swal.fire({
+          title: 'Yakin hapus?',
+          text: `Hapus data ID ${id}?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Ya, hapus',
+        }).then(result=>{
+          if (!result.isConfirmed) return;
+          fetch(apiDelete(id), { method: 'DELETE' })
+            .then(r=>{
+              if (!r.ok) throw new Error('delete failed');
+              return r.json();
+            })
+            .then(()=> {
+              table.ajax.reload(null,false);
+              refreshStats();
+              Swal.fire({ icon:'success', title:'Terhapus', text:'Data berhasil dihapus', timer:1400, showConfirmButton:false });
+            })
+            .catch(err=>{
+              console.error(err);
+              Swal.fire('Gagal', 'Gagal menghapus data', 'error');
+            });
+        });
+      });
+
+      // Submit add/edit form
+      $('#formReminder').on('submit', function(e){
+        e.preventDefault();
+        const id = $('#reminderId').val();
+        const payload = {
+          name: $('#fName').val().trim(),
+          vehicle_number: $('#fVehicle').val().trim(),
+          no_uji: $('#fNoUji').val().trim(),
+          jenis_kendaraan: $('#fJenisKendaraan').val(),
+          test_date: $('#fDate').val(),
+          phone: normalizePhone($('#fPhone').val().trim())
+        };
+        if (!payload.name || !payload.vehicle_number || !payload.test_date || !payload.no_uji || !payload.jenis_kendaraan) {
+          Swal.fire('Periksa form', 'Semua field wajib diisi!', 'warning');
+          return;
+        }
+
+        if (id) {
+          // edit
+          fetch(apiEdit(id), {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          })
+          .then(r=>{
+            if (!r.ok) throw new Error('update failed');
+            return r.json();
+          })
+          .then(()=> {
+            modal.hide();
+            table.ajax.reload(null,false);
+            refreshStats();
+            Swal.fire({ icon:'success', title:'Berhasil', text:'Data berhasil diupdate', timer:1400, showConfirmButton:false });
+          })
+          .catch(err=>{
+            console.error(err);
+            Swal.fire('Gagal', 'Gagal mengupdate data', 'error');
+          });
+        } else {
+          // add
+          fetch(apiAdd, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          })
+          .then(r=>{
+            if (!r.ok) throw new Error('add failed');
+            return r.json();
+          })
+          .then(()=> {
+            modal.hide();
+            $('#formReminder')[0].reset();
+            table.ajax.reload(null,false);
+            refreshStats();
+            Swal.fire({ icon:'success', title:'Berhasil', text:'Data berhasil ditambahkan', timer:1400, showConfirmButton:false });
+          })
+          .catch(err=>{
+            console.error(err);
+            Swal.fire('Gagal', 'Gagal menambah data', 'error');
+          });
+        }
+      });
+
+      // On table load, update stats
+      table.on('xhr', function(){
+        refreshStats();
+      });
+
+    }); // ready
+
+    // compute and display stats from latest data
+    function refreshStats(){
+      fetch(apiList)
+        .then(r=>r.json())
+        .then(data=>{
+          const total = data.length || 0;
+          const active = data.filter(d=>d.color === 'success').length;
+          const soon = data.filter(d=>d.color === 'warning').length;
+          const expired = data.filter(d=>d.color === 'danger').length;
+          $('#statTotal').text(total);
+          $('#statActive').text(active);
+          $('#statSoon').text(soon);
+          $('#statExpired').text(expired);
+        })
+        .catch(err=>{
+          console.warn('refreshStats error', err);
+          // don't block UI if stats can't be loaded
+        });
+    }
+  </script>
+</body>
+</html>

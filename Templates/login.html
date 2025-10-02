@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Login WhatsApp - Reminder</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    /* ---------- Tema Senada Dashboard ---------- */
+    :root {
+      --bg1: #f6fbff;
+      --accent1: #81d4fa;
+      --accent2: #7ef6d7;
+      --muted: #94a3b8;
+      --card-shadow: 0 10px 30px rgba(38,50,56,0.12);
+    }
+    body {
+      margin: 0;
+      font-family: "Poppins", "Inter", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(120deg, #f8fafc 0%, #e9f4ff 60%, #f1f6f9 100%);
+      color: #1f2937;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 30px;
+      text-align: center;
+      box-shadow: var(--card-shadow);
+      max-width: 380px;
+      width: 100%;
+      animation: fadeIn 0.8s ease;
+    }
+
+    h2 {
+  background: linear-gradient(90deg,#00e676,#00bcd4,#448aff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  font-size: 24px;
+  margin-bottom: 12px;
+    }
+
+    #status {
+      margin-bottom: 20px;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+
+    #qrcode canvas {
+      border: 6px solid #f1f5f9;
+      border-radius: 12px;
+      background: white;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    /* Spinner modern */
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 18px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Checkmark sukses */
+    .checkmark {
+      display: none;
+      font-size: 3.5rem;
+      color: #22c55e;
+      margin-top: 18px;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.5s ease-in-out;
+    }
+    .checkmark.show {
+      display: block;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Animasi halaman */
+    .fade-out { animation: fadeOut 0.8s forwards; }
+    @keyframes fadeOut { to { opacity: 0; transform: scale(1.05); } }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px)} to {opacity:1; transform:translateY(0)} }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Login WhatsApp</h2>
+    <p id="status">🔄 Mengecek status koneksi...</p>
+    <div id="qrcode"></div>
+    <div class="spinner" id="spinner"></div>
+    <div class="checkmark" id="checkmark">✔</div>
+  </div>
+
+  <script>
+    async function loadQR() {
+      try {
+        const statusRes = await fetch("http://localhost:3000/status");
+        const statusData = await statusRes.json();
+
+        if (statusData.connected) {
+          document.getElementById("status").innerText = "✅ Terkoneksi ke WhatsApp!";
+          document.getElementById("spinner").style.display = "none";
+          const check = document.getElementById("checkmark");
+          check.classList.add("show");
+
+          // Fade out sebelum redirect
+          setTimeout(() => { document.body.classList.add("fade-out"); }, 1200);
+          setTimeout(() => { window.location.href = "index.html"; }, 2000);
+          return;
+        }
+
+        const res = await fetch("http://localhost:3000/qr");
+        const data = await res.json();
+
+        if (data.success && data.qr) {
+          document.getElementById("status").innerText = "📱 Scan QR berikut:";
+          const qrContainer = document.getElementById("qrcode");
+          qrContainer.innerHTML = "";
+          QRCode.toCanvas(data.qr, { width: 240 }, (err, canvas) => {
+            if (!err) qrContainer.appendChild(canvas);
+          });
+        } else {
+          document.getElementById("status").innerText = data.message || "Sudah login!";
+        }
+      } catch (err) {
+        document.getElementById("status").innerText = "⚠ Error: " + err;
+      }
+    }
+
+    loadQR();
+    setInterval(loadQR, 5000);
+  </script>
+</body>
+</html>

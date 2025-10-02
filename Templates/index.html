@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>WhatsApp Reminder - Dishub</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root{
+      --bg1: #f6fbff;
+      --accent1: #81d4fa;
+      --accent2: #7ef6d7;
+      --muted: #6b7280;
+      --card-shadow: 0 10px 30px rgba(38,50,56,0.06);
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(120deg, #f8fafc 0%, #e9f4ff 60%, #f1f6f9 100%);
+      color: #1f2937;
+      padding: 30px 18px;
+    }
+    .header-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 20px;
+
+      /* Gradient text */
+      background: linear-gradient(90deg, #00e676, #00bcd4, #448aff);
+      background-clip: text;
+      -webkit-background-clip: text; /* Safari/Chrome */
+      color: transparent;
+      -webkit-text-fill-color: transparent; /* Safari/Chrome */
+    }
+
+    .card-surface {
+      background: rgba(255,255,255,0.98);
+      border-radius: 14px;
+      box-shadow: var(--card-shadow);
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+    .btn-modern { border-radius: 12px; padding: 10px 16px; font-weight: 600; }
+    .btn-add { background: linear-gradient(135deg,#5eead4,#60a5fa); border: none; color: #04243a; }
+    .btn-danger { border-radius:12px; }
+    .table-card { border-radius: 14px; overflow: hidden; box-shadow: var(--card-shadow); }
+    .table thead th { background: linear-gradient(90deg,#b3c6ff,#81ecec); }
+    .badge-status { font-weight:600; padding:6px 10px; border-radius:999px; font-size:12px; }
+    .badge-success { background:#e6f8ef; color:#0f9d58; }
+    .badge-warning { background:#fff8e8; color:#a16207; }
+    .badge-danger { background:#fff0f1; color:#be123c; }
+    .badge-secondary { background:#f0f4f8; color:#475569; }
+    input, select { border-radius: 10px; border: 1px solid #e6eef9; padding: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-title text-center">📅 Sistem Pengingat Uji Kendaraan Dishub</div>
+
+    <!-- Form input -->
+    <div class="card-surface">
+      <h5 class="mb-3"><i class="bi bi-plus-circle"></i> Tambah Reminder Baru</h5>
+      <form id="reminderForm">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nama Pemilik <span class="text-muted" style="font-size:12px">(Sesuai STNK/KTP)</span></label>
+            <input type="text" class="form-control" name="name" required placeholder="Nama sesuai STNK/KTP">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Nomor Kendaraan</label>
+            <input type="text" class="form-control" name="vehicle_number" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">No Uji</label>
+            <input type="text" class="form-control" name="no_uji" required placeholder="SLO 6798/BDG/6543/DPR 5890/JKT 3417">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Jenis Kendaraan</label>
+            <select class="form-control" name="jenis_kendaraan" required>
+              <option value="">Pilih Jenis Kendaraan</option>
+              <option value="Truck">Truck</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Mobil barang">Mobil barang</option>
+              <option value="Tronton">Tronton</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Tanggal Uji</label>
+            <input type="date" class="form-control" name="test_date" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">No. WhatsApp</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="phoneInput" name="phone" placeholder="812xxxxxx">
+              <button type="button" class="btn btn-outline-secondary" id="idFlagBtn">🇮🇩</button>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <button type="submit" class="btn btn-add btn-modern">💾 Simpan Reminder</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tabel data -->
+    <div class="table-card bg-white">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">Daftar Reminder</h5>
+          <small class="text-muted">Data pengingat uji kendaraan</small>
+        </div>
+      </div>
+      <div class="p-3 table-responsive">
+        <table class="table table-hover align-middle" id="reminderTable">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>No. Kendaraan</th>
+              <th>No Uji</th>
+              <th>Jenis Kendaraan</th>
+              <th>Tanggal Uji</th>
+              <th>No. WA</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="p-3 d-flex gap-2 flex-wrap">
+        <button class="btn btn-success btn-modern flex-fill" id="runNowBtn">▶️ Kirim Semua Hari Ini</button>
+        <button class="btn btn-danger btn-modern flex-fill" id="clearBtn">🗑️ Hapus Semua</button>
+        <button id="resetAuthBtn" class="btn btn-warning btn-modern flex-fill">🔄 Reset Login WA</button>
+        <button id="btnLogout" class="btn btn-outline-secondary btn-modern">🚪 Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:5000";
+
+    function normalizePhone(phone) {
+      phone = phone.trim();
+      if (phone.startsWith("0")) return "62" + phone.slice(1);
+      else if (!phone.startsWith("62")) return "62" + phone;
+      return phone;
+    }
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // ID Flag Button
+      const idFlagBtn = document.getElementById("idFlagBtn");
+      if (idFlagBtn) {
+        idFlagBtn.addEventListener("click", () => {
+          let input = document.getElementById("phoneInput");
+          if (input) input.value = normalizePhone(input.value);
+        });
+      }
+
+      // Logout / Keluar Button
+      const btnLogout = document.getElementById("btnLogout");
+      if (btnLogout) {
+        btnLogout.addEventListener("click", () => {
+          Swal.fire({
+            title: 'Keluar?',
+            text: 'Anda akan keluar dari Dashboard',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Keluar',
+            cancelButtonText: 'Batal'
+          }).then(result => {
+            if (result.isConfirmed) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Keluar',
+                showConfirmButton: false,
+                timer: 1200
+              });
+              setTimeout(() => {
+                window.location.href = "http://127.0.0.1:5000/";
+              }, 1300);
+            }
+          });
+        });
+      }
+
+      // Reset Auth Button
+      const resetAuthBtn = document.getElementById("resetAuthBtn");
+      if (resetAuthBtn) {
+        resetAuthBtn.addEventListener("click", async function() {
+          const btn = this;
+          btn.disabled = true;
+          btn.textContent = "⏳ Resetting...";
+          try {
+            const res = await fetch("http://localhost:3000/reset-auth", { method: "DELETE" });
+            const data = await res.json();
+            Swal.fire("🔄 Reset", data.message, "info").then(() => {
+              window.location.href = "login.html";
+            });
+          } catch (err) {
+            Swal.fire("⚠️ Error", "Gagal reset auth: " + err, "error");
+          } finally {
+            btn.disabled = false;
+            btn.textContent = "🔄 Reset Login WA";
+          }
+        });
+      }
+    });
+
+    async function loadReminders() {
+      let res = await fetch(`${API_BASE}/list?format=json`);
+      let data = await res.json();
+      let tbody = document.querySelector("#reminderTable tbody");
+      tbody.innerHTML = "";
+      data.forEach(r => {
+        // Mapping warna badge sesuai status backend
+        let badgeClass = "badge-secondary";
+        switch (r.status) {
+          case "Expired": badgeClass = "badge-danger"; break;
+          case "H (today)": badgeClass = "badge-warning"; break;
+          case "H-1": badgeClass = "badge-primary"; break;
+          case "H-3 or more": badgeClass = "badge-success"; break;
+          default: badgeClass = "badge-secondary";
+        }
+        let row = `
+        <tr>
+          <td>${r.name}</td>
+          <td>${r.vehicle_number}</td>
+          <td>${r.no_uji || '-'}</td>
+          <td>${r.jenis_kendaraan || '-'}</td>
+          <td>${r.test_date}</td>
+          <td>${r.phone || '-'}</td>
+          <td><span class="badge-status ${badgeClass}">${r.status || '-'}</span></td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="sendOne(${r.id})">📤 Kirim</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteOne(${r.id})">🗑️</button>
+          </td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const reminderForm = document.getElementById("reminderForm");
+      if (reminderForm) {
+        reminderForm.addEventListener("submit", async e => {
+          e.preventDefault();
+          let formData = new FormData(e.target);
+          let jsonData = {};
+          // Di JS, hapus pengiriman field nik
+          formData.forEach((v, k) => {
+            if (k !== "nik") jsonData[k] = k === "phone" ? normalizePhone(v) : v;
+          });
+          // Ensure required fields
+          if (!jsonData.name || !jsonData.vehicle_number || !jsonData.test_date || !jsonData.no_uji || !jsonData.jenis_kendaraan) {
+            Swal.fire('Periksa form', 'Semua field wajib diisi!', 'warning');
+            return;
+          }
+
+          let res = await fetch(`${API_BASE}/add`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(jsonData)
+          });
+          if (res.ok) {
+            Swal.fire("✅ Sukses", "Reminder berhasil ditambahkan!", "success");
+            e.target.reset();
+            loadReminders();
+          } else {
+            Swal.fire("⚠️ Gagal", "Tidak bisa menambahkan reminder.", "error");
+          }
+        });
+      }
+    });
+
+    async function sendOne(id) {
+      let res = await fetch(`${API_BASE}/send_one/${id}`, { method: "POST" });
+      let data = await res.json();
+      if (res.ok) {
+        Swal.fire("📤 Terkirim", `Reminder ke ${data.id}, status: ${data.status}`, "success");
+        loadReminders();
+      } else {
+        Swal.fire("⚠️ Gagal", "Gagal mengirim reminder!", "error");
+      }
+    }
+
+    async function deleteOne(id) {
+      const confirm = await Swal.fire({
+        title: "Hapus reminder?",
+        text: "Data ini tidak bisa dikembalikan.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, hapus!",
+        cancelButtonText: "Batal"
+      });
+      if (!confirm.isConfirmed) return;
+
+      let res = await fetch(`${API_BASE}/delete/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        Swal.fire("🗑️ Terhapus", "Reminder berhasil dihapus!", "success");
+        loadReminders();
+      } else {
+        Swal.fire("⚠️ Gagal", "Tidak bisa menghapus reminder.", "error");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const runNowBtn = document.getElementById("runNowBtn");
+      if (runNowBtn) {
+        runNowBtn.addEventListener("click", async () => {
+          await fetch(`${API_BASE}/run_now`, { method: "POST" });
+          Swal.fire("▶️ Diproses", "Reminder hari ini sedang dikirim.", "info");
+          loadReminders();
+        });
+      }
+
+      const clearBtn = document.getElementById("clearBtn");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", async () => {
+          const confirm = await Swal.fire({
+            title: "Hapus semua reminder?",
+            text: "Semua data akan hilang permanen.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Ya, hapus semua",
+            cancelButtonText: "Batal"
+          });
+          if (!confirm.isConfirmed) return;
+          await fetch(`${API_BASE}/clear`, { method: "DELETE" });
+          Swal.fire("🗑️ Terhapus", "Semua reminder berhasil dihapus!", "success");
+          loadReminders();
+        });
+      }
+    });
+
+    document.getElementById("resetAuthBtn").addEventListener("click", async function() {
+      const btn = this;
+      btn.disabled = true;
+      btn.textContent = "⏳ Resetting...";
+      try {
+        const res = await fetch("http://localhost:3000/reset-auth", { method: "DELETE" });
+        const data = await res.json();
+        Swal.fire("🔄 Reset", data.message, "info").then(() => {
+          window.location.href = "login.html";
+        });
+      } catch (err) {
+        Swal.fire("⚠️ Error", "Gagal reset auth: " + err, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🔄 Reset Login WA";
+      }
+    });
+
+    // === Logout / Keluar ===
+    document.getElementById("btnLogout").addEventListener("click", () => {
+      Swal.fire({
+        title: 'Keluar?',
+        text: 'Anda akan keluar dari Dashboard',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Keluar',
+        cancelButtonText: 'Batal'
+      }).then(result => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Keluar',
+            showConfirmButton: false,
+            timer: 1200
+          });
+          setTimeout(() => {
+            window.location.href = "http://127.0.0.1:5000/";
+          }, 1300);
+        }
+      });
+    });
+
+    // pertama kali load
+    loadReminders();
+  </script>
+</body>
+</html>
