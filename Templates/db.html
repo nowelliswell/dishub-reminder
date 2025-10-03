@@ -272,27 +272,21 @@ async function loadSummary() {
 
   // filter event
   let lastStatus = null;
+  window.activeStatusFilter = null;
   document.querySelectorAll('.status-filter-card').forEach(card => {
     card.addEventListener('click', function() {
       let status = this.getAttribute('data-status');
-      if (status === "H-3+") status = "H-3 or more";  // mapping
-
+      if (status === "H-3+") status = "H-3 or more";
       if (lastStatus === status) {
-        // Reset filter
-        window.table.column(7).search('').draw();
+        window.activeStatusFilter = null;
+        window.table.draw();
         lastStatus = null;
-        // Hilangkan highlight semua card
-        document.querySelectorAll('.status-filter-card').forEach(c => {
-          c.classList.remove("active-card");
-        });
+        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove("active-card"));
       } else {
-        // Terapkan filter
-        window.table.column(7).search('^' + status + '$', true, false).draw();
+        window.activeStatusFilter = status;
+        window.table.draw();
         lastStatus = status;
-        // Reset highlight lalu aktifkan card ini
-        document.querySelectorAll('.status-filter-card').forEach(c => {
-          c.classList.remove("active-card");
-        });
+        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove("active-card"));
         this.classList.add("active-card");
       }
     });
@@ -441,19 +435,31 @@ loadSummary();
       });
       window.table = table; // pastikan global
 
-      // Status filter event (pindahkan ke sini agar pasti setelah DataTable siap)
+      // Status filter event (hanya pakai custom filter DataTables)
       let lastStatus = null;
       $(document).on('click', '.status-filter-card', function() {
-        const status = $(this).data('status');
-        let searchVal = status;
-        if (status === 'H-3+') searchVal = 'H-3 or more';
-        if (lastStatus === searchVal) {
-          table.column(7).search('').draw();
+        let status = $(this).data('status');
+        if (status === 'H-3+') status = 'H-3 or more';
+        if (lastStatus === status) {
+          window.activeStatusFilter = null;
+          table.draw();
           lastStatus = null;
+          document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
         } else {
-          table.column(7).search('^' + searchVal + '$', true, false).draw();
-          lastStatus = searchVal;
+          window.activeStatusFilter = status;
+          table.draw();
+          lastStatus = status;
+          document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
+          this.classList.add('active-card');
         }
+      });
+
+      // Tambahkan custom filter DataTables untuk status
+      $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        if (!window.activeStatusFilter) return true;
+        // Kolom status ada di index 7 (kolom ke-8)
+        const statusText = data[7] ? data[7].replace(/<[^>]+>/g, '').trim() : '';
+        return statusText === window.activeStatusFilter;
       });
 
       // wire custom search box to datatable
@@ -469,11 +475,11 @@ loadSummary();
       // Refresh
       $('#btnRefresh').on('click', function(){
         table.ajax.reload(null, false);
-        // Reset filter status dan highlight card
-        table.column(7).search('').draw();
+        window.activeStatusFilter = null;
+        table.draw();
         document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Data sudah di-refresh', showConfirmButton:false, timer:1600 });
-        loadSummary(); // pastikan summary juga update
+        loadSummary();
       });
 
       // Add button opens modal

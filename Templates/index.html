@@ -54,6 +54,102 @@
     .badge-danger { background:#fff0f1; color:#be123c; }
     .badge-secondary { background:#f0f4f8; color:#475569; }
     input, select { border-radius: 10px; border: 1px solid #e6eef9; padding: 10px; }
+
+    .status-tab {
+      display: inline-block;
+      margin: 0 6px 8px 0;
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-weight: 600;
+      background: #f3f6fa;
+      color: #2563eb;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.06);
+    }
+    .status-tab.active {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      border-color: #2563eb;
+      box-shadow: 0 6px 15px rgba(59,130,246,0.18);
+      transform: translateY(-2px) scale(1.04);
+    }
+
+    .vertical-tabs-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin-bottom: 1rem;
+    }
+    .vertical-tabs {
+      display: flex;
+      flex-direction: column;
+      border-radius: 0.5rem 0 0 0.5rem;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      min-width: 140px;
+      height: 100%;
+      padding: 0.5rem 0;
+    }
+    .vertical-tabs .status-tab {
+      padding: 0.75rem 1rem;
+      border: none;
+      background: none;
+      text-align: left;
+      font-weight: 500;
+      color: #495057;
+      cursor: pointer;
+      border-radius: 0;
+      border-left: 4px solid transparent;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      margin: 0;
+    }
+    .vertical-tabs .status-tab.active {
+      background: #e9ecef;
+      color: #0d6efd;
+      border-left: 4px solid #0d6efd;
+      font-weight: 600;
+    }
+    .reminder-table-wrapper {
+      flex: 1;
+      background: #fff;
+      border-radius: 0 0.5rem 0.5rem 0;
+      border: 1px solid #dee2e6;
+      border-left: none;
+      padding: 1rem 1rem 1rem 0.5rem;
+      min-width: 0;
+    }
+    @media (max-width: 768px) {
+      .vertical-tabs-container {
+        flex-direction: column;
+      }
+      .vertical-tabs {
+        flex-direction: row;
+        border-radius: 0.5rem 0.5rem 0 0;
+        min-width: 0;
+        width: 100%;
+        border-bottom: 1px solid #dee2e6;
+        border-right: none;
+      }
+      .vertical-tabs .status-tab {
+        border-left: none;
+        border-bottom: 4px solid transparent;
+        border-radius: 0;
+        text-align: center;
+        flex: 1;
+      }
+      .vertical-tabs .status-tab.active {
+        border-bottom: 4px solid #0d6efd;
+        border-left: none;
+      }
+      .reminder-table-wrapper {
+        border-radius: 0 0 0.5rem 0.5rem;
+        border-top: none;
+        border-left: 1px solid #dee2e6;
+        padding: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -105,36 +201,44 @@
       </form>
     </div>
 
-    <!-- Tabel data -->
-    <div class="table-card bg-white">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-        <div>
-          <h5 class="mb-0">Daftar Reminder</h5>
-          <small class="text-muted">Data pengingat uji kendaraan</small>
+    <!-- Tab status -->
+    <div class="vertical-tabs-container">
+      <div class="vertical-tabs" id="statusTabs">
+        <!-- Tab status akan diisi via JS -->
+      </div>
+      <div class="reminder-table-wrapper">
+        <!-- Tabel data -->
+        <div class="table-card bg-white">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-0">Daftar Reminder</h5>
+              <small class="text-muted">Data pengingat uji kendaraan</small>
+            </div>
+          </div>
+          <div class="p-3 table-responsive">
+            <table class="table table-hover align-middle" id="reminderTable">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>No. Kendaraan</th>
+                  <th>No Uji</th>
+                  <th>Jenis Kendaraan</th>
+                  <th>Tanggal Uji</th>
+                  <th>No. WA</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="p-3 d-flex gap-2 flex-wrap">
+            <button class="btn btn-success btn-modern flex-fill" id="runNowBtn">▶️ Kirim Semua Hari Ini</button>
+            <button class="btn btn-danger btn-modern flex-fill" id="clearBtn">🗑️ Hapus Semua</button>
+            <button id="resetAuthBtn" class="btn btn-warning btn-modern flex-fill">🔄 Reset Login WA</button>
+            <button id="btnLogout" class="btn btn-outline-secondary btn-modern">🚪 Keluar</button>
+          </div>
         </div>
-      </div>
-      <div class="p-3 table-responsive">
-        <table class="table table-hover align-middle" id="reminderTable">
-          <thead>
-            <tr>
-              <th>Nama</th>
-              <th>No. Kendaraan</th>
-              <th>No Uji</th>
-              <th>Jenis Kendaraan</th>
-              <th>Tanggal Uji</th>
-              <th>No. WA</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="p-3 d-flex gap-2 flex-wrap">
-        <button class="btn btn-success btn-modern flex-fill" id="runNowBtn">▶️ Kirim Semua Hari Ini</button>
-        <button class="btn btn-danger btn-modern flex-fill" id="clearBtn">🗑️ Hapus Semua</button>
-        <button id="resetAuthBtn" class="btn btn-warning btn-modern flex-fill">🔄 Reset Login WA</button>
-        <button id="btnLogout" class="btn btn-outline-secondary btn-modern">🚪 Keluar</button>
       </div>
     </div>
   </div>
@@ -213,15 +317,23 @@
     async function loadReminders() {
       let res = await fetch(`${API_BASE}/list?format=json`);
       let data = await res.json();
+      window.allReminders = data;
+      renderReminderTable();
+    }
+
+    function renderReminderTable(statusFilter = null) {
       let tbody = document.querySelector("#reminderTable tbody");
       tbody.innerHTML = "";
-      data.forEach(r => {
-        // Mapping warna badge sesuai status backend
+      let filtered = window.allReminders || [];
+      if (statusFilter && statusFilter !== "") {
+        filtered = filtered.filter(r => r.status === statusFilter);
+      }
+      filtered.forEach(r => {
         let badgeClass = "badge-secondary";
         switch (r.status) {
-          case "Expired": badgeClass = "badge-danger"; break;
-          case "H (today)": badgeClass = "badge-warning"; break;
-          case "H-1": badgeClass = "badge-primary"; break;
+          case "Expired": badgeClass = "badge-secondary"; break;
+          case "H (today)": badgeClass = "badge-danger"; break;
+          case "H-1": badgeClass = "badge-warning"; break;
           case "H-3 or more": badgeClass = "badge-success"; break;
           default: badgeClass = "badge-secondary";
         }
@@ -380,6 +492,41 @@
 
     // pertama kali load
     loadReminders();
+
+    // Tab status modern & filter persis seperti db.html
+    const statusList = [
+      { label: "Semua", value: "" },
+      { label: "Expired", value: "Expired" },
+      { label: "H (today)", value: "H (today)" },
+      { label: "H-1", value: "H-1" },
+      { label: "H-3 or more", value: "H-3 or more" }
+    ];
+    function renderStatusTabs() {
+      const container = document.getElementById("statusTabs");
+      container.innerHTML = statusList.map(s =>
+        `<button type="button" class="status-tab" data-status="${s.value}">${s.label}</button>`
+      ).join("");
+    }
+    renderStatusTabs();
+    let lastTab = null;
+    document.getElementById("statusTabs").addEventListener("click", function(e) {
+      if (e.target.classList.contains("status-tab")) {
+        const status = e.target.getAttribute("data-status");
+        // Reset semua tab
+        document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+        // Aktifkan tab ini
+        if (lastTab === status || status === "") {
+          lastTab = null;
+          // Beri efek aktif pada tab 'Semua'
+          document.querySelector('.status-tab[data-status=""]').classList.add('active');
+          renderReminderTable();
+        } else {
+          lastTab = status;
+          e.target.classList.add('active');
+          renderReminderTable(status);
+        }
+      }
+    });
   </script>
 </body>
 </html>
