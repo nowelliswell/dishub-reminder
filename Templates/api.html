@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dishub Reminder - Home</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
@@ -36,14 +37,14 @@
     }
 
     h1 {
-  font-weight: 700;
-  font-size: 2.2rem;
-  background: linear-gradient(90deg, #00c6ff, #0072ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-  margin-bottom: 15px;
+      font-weight: 700;
+      font-size: 2.2rem;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 15px;
     }
 
     p {
@@ -66,6 +67,7 @@
       transition: all 0.3s ease;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       box-shadow: 0 3px 12px rgba(0,0,0,0.08);
     }
@@ -87,6 +89,95 @@
     .btn-custom:hover {
       transform: scale(1.05) translateY(-2px);
       box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    }
+
+    /* Responsiveness improvements */
+    @media (max-width: 768px) {
+      .card-home {
+        padding: 40px 30px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      p {
+        font-size: 1rem;
+      }
+      
+      .icon-home {
+        font-size: 56px;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      .card-home {
+        padding: 30px 20px;
+      }
+      
+      h1 {
+        font-size: 1.6rem;
+      }
+      
+      .btn-custom {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      
+      .d-flex.gap-3 {
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      .icon-home {
+        font-size: 48px;
+      }
+    }
+
+    /* Login form styling */
+    .custom-swal-input {
+      margin-bottom: 15px;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      padding: 12px 15px;
+      font-size: 1rem;
+      width: 100%;
+      transition: border-color 0.3s;
+    }
+    
+    .custom-swal-input:focus {
+      border-color: #0072ff;
+      box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2);
+      outline: none;
+    }
+    
+    .custom-swal-input::placeholder {
+      color: #9e9e9e;
+    }
+    
+    .login-form-container {
+      padding: 10px 5px;
+    }
+    
+    .login-btn-container {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .login-spinner {
+      display: none;
+      margin-right: 8px;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -113,24 +204,70 @@
       Swal.fire({
         title: 'Login Diperlukan',
         html: `
-          <input type="text" id="uname" class="swal2-input" placeholder="Username">
-          <input type="password" id="pass" class="swal2-input" placeholder="Password">
+          <div class="login-form-container">
+            <div class="mb-3">
+              <input type="text" id="uname" class="custom-swal-input" placeholder="Username" autocomplete="username">
+              <div id="unameError" class="text-danger text-start small mt-1" style="display: none;">Username harus diisi</div>
+            </div>
+            <div class="mb-3">
+              <input type="password" id="pass" class="custom-swal-input" placeholder="Password" autocomplete="current-password">
+              <div id="passError" class="text-danger text-start small mt-1" style="display: none;">Password harus diisi</div>
+            </div>
+          </div>
         `,
-        confirmButtonText: 'Login',
+        confirmButtonText: '<div class="login-btn-container"><span id="loginSpinner" class="login-spinner"></span>Login</div>',
         showCancelButton: true,
         background: "#fff",
         color: "#263238",
         confirmButtonColor: "#0072ff",
         cancelButtonColor: "#ff5252",
+        focusConfirm: false,
         preConfirm: () => {
+          // Show spinner
+          document.getElementById('loginSpinner').style.display = 'inline-block';
+          
           const uname = document.getElementById('uname').value;
           const pass = document.getElementById('pass').value;
-          if (uname === "admin" && pass === "1234") {
-            return true;
+          let isValid = true;
+          
+          // Validate username
+          if (!uname) {
+            document.getElementById('unameError').style.display = 'block';
+            document.getElementById('uname').style.borderColor = '#dc3545';
+            isValid = false;
           } else {
-            Swal.showValidationMessage('Username / Password salah!');
+            document.getElementById('unameError').style.display = 'none';
+            document.getElementById('uname').style.borderColor = '#e0e0e0';
+          }
+          
+          // Validate password
+          if (!pass) {
+            document.getElementById('passError').style.display = 'block';
+            document.getElementById('pass').style.borderColor = '#dc3545';
+            isValid = false;
+          } else {
+            document.getElementById('passError').style.display = 'none';
+            document.getElementById('pass').style.borderColor = '#e0e0e0';
+          }
+          
+          if (!isValid) {
+            // Hide spinner if validation fails
+            document.getElementById('loginSpinner').style.display = 'none';
             return false;
           }
+          
+          // Simulate server validation with a small delay
+          return new Promise(resolve => {
+            setTimeout(() => {
+              if (uname === "admin" && pass === "1234") {
+                resolve(true);
+              } else {
+                document.getElementById('loginSpinner').style.display = 'none';
+                Swal.showValidationMessage('Username / Password salah!');
+                resolve(false);
+              }
+            }, 800);
+          });
         }
       }).then((result) => {
         if (result.isConfirmed) {
@@ -149,6 +286,22 @@
         }
       });
     });
+    
+    // Add input event listeners for real-time validation
+    document.addEventListener('input', function(e) {
+      if (e.target && e.target.id === 'uname') {
+        if (e.target.value) {
+          document.getElementById('unameError').style.display = 'none';
+          e.target.style.borderColor = '#e0e0e0';
+        }
+      }
+      if (e.target && e.target.id === 'pass') {
+        if (e.target.value) {
+          document.getElementById('passError').style.display = 'none';
+          e.target.style.borderColor = '#e0e0e0';
+        }
+      }
+    }, true);
   </script>
 
 </body>

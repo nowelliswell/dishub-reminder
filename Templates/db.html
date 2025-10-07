@@ -100,6 +100,22 @@
       .stats-grid{ grid-template-columns: repeat(1,1fr) !important; }
       .search-input{ width:100%; }
     }
+    
+    @media (max-width: 768px) {
+      .header-title { font-size: 24px; }
+      .controls { flex-direction: column; width: 100%; }
+      .search-input { width: 100%; margin-bottom: 10px; }
+      #exportBtn { width: 100%; }
+    }
+    
+    @media (max-width: 576px) {
+      .col-4.text-end { text-align: left !important; margin-top: 15px; }
+      .d-inline-block { display: flex !important; flex-direction: column; gap: 8px; }
+      .d-inline-block .btn { width: 100%; margin-left: 0 !important; margin-bottom: 5px; }
+      .header-title { font-size: 22px; }
+      .card-surface { padding: 15px; }
+      .table-responsive { margin: 0 -15px; }
+    }
 
     .status-filter-card.active-card {
       background: linear-gradient(135deg, #3b82f6, #2563eb);
@@ -155,23 +171,35 @@
           </div>
 
           <div class="p-3">
-            <table id="reminderTable" class="table table-hover nowrap" style="width:100%">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nama</th>
-                  <th>No Kendaraan</th>
-                  <th>No Uji</th>
-                  <th>Jenis Kendaraan</th>
-                  <th>Tanggal Uji</th>
-                  <th>Telepon</th>
-                  <th>Status</th>
-                  <th>Dibuat</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+            <div class="table-responsive">
+              <div id="tableLoading" class="text-center py-4 d-none">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Memuat data...</p>
+              </div>
+              <table id="reminderTable" class="table table-hover nowrap" style="width:100%">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>No Kendaraan</th>
+                    <th>No Uji</th>
+                    <th>Jenis Kendaraan</th>
+                    <th>Tanggal Uji</th>
+                    <th>Telepon</th>
+                    <th>Status</th>
+                    <th>Dibuat</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <div class="dataTables_info" id="reminderTable_info" role="status"></div>
+              <div class="dataTables_paginate paging_simple_numbers" id="reminderTable_paginate"></div>
+            </div>
           </div>
 
         </div>
@@ -192,14 +220,17 @@
           <div class="mb-3">
             <label class="form-label">Nama Pemilik <span class="text-muted" style="font-size:12px">(Sesuai STNK/KTP)</span></label>
             <input name="name" id="fName" class="form-control" required placeholder="Nama sesuai STNK/KTP" />
+            <div class="invalid-feedback">Nama pemilik wajib diisi</div>
           </div>
           <div class="mb-3">
             <label class="form-label">No Kendaraan</label>
-            <input name="vehicle_number" id="fVehicle" class="form-control" required />
+            <input name="vehicle_number" id="fVehicle" class="form-control" required placeholder="AB 1234 CD" />
+            <div class="invalid-feedback">Nomor kendaraan wajib diisi</div>
           </div>
           <div class="mb-3">
             <label class="form-label">No Uji</label>
             <input name="no_uji" id="fNoUji" class="form-control" required placeholder="SLO 6798/BDG/6543/DPR 5890/JKT 3417" />
+            <div class="invalid-feedback">Nomor uji wajib diisi</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Jenis Kendaraan</label>
@@ -210,19 +241,25 @@
               <option value="Mobil barang">Mobil barang</option>
               <option value="Tronton">Tronton</option>
             </select>
+            <div class="invalid-feedback">Jenis kendaraan wajib dipilih</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Tanggal Uji</label>
             <input type="date" name="test_date" id="fDate" class="form-control" required />
+            <div class="invalid-feedback">Tanggal uji wajib diisi</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Telepon</label>
-            <input name="phone" id="fPhone" class="form-control" />
+            <input name="phone" id="fPhone" class="form-control" placeholder="08xxxxxxxxxx" />
+            <div class="form-text">Format: 08xxxxxxxxxx (opsional)</div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary btn-modern">Simpan</button>
           <button type="button" class="btn btn-outline-secondary btn-modern" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" id="btnSave" class="btn btn-primary btn-modern">
+            <span class="spinner-border spinner-border-sm d-none" id="saveSpinner" role="status" aria-hidden="true"></span>
+            <span id="saveText">Simpan</span>
+          </button>
         </div>
       </form>
     </div>
@@ -361,13 +398,25 @@ loadSummary();
 
     let table;
     $(document).ready(function(){
+      // Show loading indicator
+      $('#tableLoading').removeClass('d-none');
+      
       // Initialize DataTable
       table = $('#reminderTable').DataTable({
         ajax: {
           url: apiList,
           dataSrc: '',
+          beforeSend: function() {
+            $('#tableLoading').removeClass('d-none');
+            $('#reminderTable').addClass('d-none');
+          },
+          complete: function() {
+            $('#tableLoading').addClass('d-none');
+            $('#reminderTable').removeClass('d-none');
+          },
           error: function(xhr, status, error){
             console.error('DataTables Ajax error', status, error, xhr);
+            $('#tableLoading').addClass('d-none');
             Swal.fire({
               icon: 'error',
               title: 'Gagal memuat data',
@@ -547,9 +596,41 @@ loadSummary();
         });
       });
 
+      // Form validation
+      function validateForm() {
+        let isValid = true;
+        const form = document.getElementById('formReminder');
+        
+        // Reset validation state
+        form.querySelectorAll('.form-control').forEach(input => {
+          input.classList.remove('is-invalid');
+        });
+        
+        // Validate required fields
+        form.querySelectorAll('.form-control[required]').forEach(input => {
+          if (!input.value.trim()) {
+            input.classList.add('is-invalid');
+            isValid = false;
+          }
+        });
+        
+        return isValid;
+      }
+      
       // Submit add/edit form
       $('#formReminder').on('submit', function(e){
         e.preventDefault();
+        
+        // Validate form
+        if (!validateForm()) {
+          return;
+        }
+        
+        // Show loading state
+        $('#saveSpinner').removeClass('d-none');
+        $('#saveText').text('Menyimpan...');
+        $('#btnSave').attr('disabled', true);
+        
         const id = $('#reminderId').val();
         const payload = {
           name: $('#fName').val().trim(),
@@ -559,10 +640,6 @@ loadSummary();
           test_date: $('#fDate').val(),
           phone: normalizePhone($('#fPhone').val().trim())
         };
-        if (!payload.name || !payload.vehicle_number || !payload.test_date || !payload.no_uji || !payload.jenis_kendaraan) {
-          Swal.fire('Periksa form', 'Semua field wajib diisi!', 'warning');
-          return;
-        }
 
         if (id) {
           // edit
@@ -576,12 +653,22 @@ loadSummary();
             return r.json();
           })
           .then(()=> {
+            // Reset loading state
+            $('#saveSpinner').addClass('d-none');
+            $('#saveText').text('Simpan');
+            $('#btnSave').attr('disabled', false);
+            
             modal.hide();
             table.ajax.reload(null,false);
             refreshStats();
             Swal.fire({ icon:'success', title:'Berhasil', text:'Data berhasil diupdate', timer:1400, showConfirmButton:false });
           })
           .catch(err=>{
+            // Reset loading state
+            $('#saveSpinner').addClass('d-none');
+            $('#saveText').text('Simpan');
+            $('#btnSave').attr('disabled', false);
+            
             console.error(err);
             Swal.fire('Gagal', 'Gagal mengupdate data', 'error');
           });
@@ -597,6 +684,11 @@ loadSummary();
             return r.json();
           })
           .then(()=> {
+            // Reset loading state
+            $('#saveSpinner').addClass('d-none');
+            $('#saveText').text('Simpan');
+            $('#btnSave').attr('disabled', false);
+            
             modal.hide();
             $('#formReminder')[0].reset();
             table.ajax.reload(null,false);
@@ -604,6 +696,11 @@ loadSummary();
             Swal.fire({ icon:'success', title:'Berhasil', text:'Data berhasil ditambahkan', timer:1400, showConfirmButton:false });
           })
           .catch(err=>{
+            // Reset loading state
+            $('#saveSpinner').addClass('d-none');
+            $('#saveText').text('Simpan');
+            $('#btnSave').attr('disabled', false);
+            
             console.error(err);
             Swal.fire('Gagal', 'Gagal menambah data', 'error');
           });
