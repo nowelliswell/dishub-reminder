@@ -229,15 +229,6 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="reminderId" />
-          <div class="mb-3 text-center">
-            <div class="avatar-upload">
-              <img src="/static/uploads/avatar.png" id="avatarPreview" class="rounded-circle mb-2" style="width:120px;height:120px;object-fit:cover;border:2px solid #e6eef9;" onerror="this.src='https://placehold.co/120x120/e6eef9/1f2937?text=Photo'">
-              <input type="file" id="avatarInput" name="avatar" class="form-control" accept="image/*" style="display:none">
-              <button type="button" class="btn btn-sm btn-light" onclick="document.getElementById('avatarInput').click()">
-                <i class="bi bi-camera"></i> Upload Foto
-              </button>
-            </div>
-          </div>
           <div class="mb-3">
             <label class="form-label">Nama Pemilik <span class="text-muted" style="font-size:12px">(Sesuai STNK/KTP)</span></label>
             <input name="name" id="fName" class="form-control" required placeholder="Nama sesuai STNK/KTP" />
@@ -743,9 +734,6 @@ loadSummary();
           const reader = new FileReader();
           reader.onload = function(e) {
             headerAvatar.src = e.target.result;
-            if (avatarPreview) {
-              avatarPreview.src = e.target.result; // Update modal preview if exists
-            }
           }
           reader.readAsDataURL(this.files[0]);
           
@@ -787,56 +775,7 @@ loadSummary();
         }
       });
 
-      // Modal Avatar upload handling
-      const avatarInput = document.getElementById('avatarInput');
-      const avatarPreview = document.getElementById('avatarPreview');
-      
-      avatarInput.addEventListener('change', function(e) {
-        if (this.files && this.files[0]) {
-          // Preview the selected image
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            avatarPreview.src = e.target.result;
-          }
-          reader.readAsDataURL(this.files[0]);
-          
-          // Upload the file
-          const formData = new FormData();
-          formData.append('avatar', this.files[0]);
-          
-          fetch('/upload-avatar', {
-            method: 'POST',
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.status === 'ok') {
-              Swal.fire({
-                icon: 'success',
-                title: 'Foto berhasil diupload',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000
-              });
-            } else {
-              throw new Error(data.error || 'Upload failed');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Gagal upload foto',
-              text: error.message,
-              toast: true,
-              position: 'top-end',
-              showConfirmButton: false,
-              timer: 3000
-            });
-          });
-        }
-      });
+
       
     }); // ready
 
