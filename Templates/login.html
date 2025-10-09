@@ -250,17 +250,24 @@
         const statusData = await statusRes.json();
 
         if (statusData.connected) {
-          // Already connected
-          statusEl.innerHTML = "<i class='bi bi-check-circle-fill'></i> Terkoneksi ke WhatsApp!";
-          spinnerEl.style.display = "none";
+          // Show connecting animation
+          statusEl.innerHTML = "<i class='bi bi-wifi'></i> Menyambungkan ke WhatsApp...";
+          spinnerEl.style.display = "block";
           qrcodeEl.innerHTML = "";
           refreshBtn.style.display = "none";
-          checkmarkEl.classList.add("show");
+          checkmarkEl.classList.remove("show");
 
-          // Fade out before redirect
-          setTimeout(() => { document.body.classList.add("fade-out"); }, 1200);
-          setTimeout(() => { window.location.href = "index.html"; }, 2000);
-          
+          // After 2 seconds, show success
+          setTimeout(() => {
+            statusEl.innerHTML = "<i class='bi bi-check-circle-fill'></i> Terkoneksi ke WhatsApp!";
+            spinnerEl.style.display = "none";
+            checkmarkEl.classList.add("show");
+
+            // Fade out before redirect
+            setTimeout(() => { document.body.classList.add("fade-out"); }, 1200);
+            setTimeout(() => { window.location.href = "index.html"; }, 2000);
+          }, 2000);
+
           // Clear interval
           if (qrCheckInterval) {
             clearInterval(qrCheckInterval);

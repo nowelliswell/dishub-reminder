@@ -10,7 +10,6 @@ import { Boom } from "@hapi/boom";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import open from "open";
 import dotenv from "dotenv"; // ✅ Tambahan
 
 // Load .env
@@ -44,7 +43,7 @@ app.get("/status", (req, res) => {
 
 app.listen(port, () => {
     console.log(`📡 ${appName} aktif di http://localhost:${port}`);
-    open(`http://localhost:${port}`);
+    console.log(`🔗 Akses manual: http://localhost:${port}`);
 });
 
 let sock;
