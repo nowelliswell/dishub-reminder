@@ -129,6 +129,27 @@
     .status-filter-card.active-card i {
       color: white !important;
     }
+    
+    /* Info color styling for Semua Data card */
+    .border-info {
+      border-color: #0dcaf0 !important;
+    }
+    .text-info {
+      color: #0dcaf0 !important;
+    }
+    .status-filter-card[data-status="Semua Data"].active-card {
+      background: linear-gradient(135deg, #0dcaf0, #0097b2);
+    }
+    
+    /* Export button spin animation */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spin {
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
 
   </style>
 </head>
@@ -299,6 +320,7 @@ async function loadSummary() {
   });
 
   const mapping = [
+    {label: "Semua Data", count: data.length, color: "info", icon: "bi-database-fill"},
     {label: "Expired", count: counts.expired, color: "secondary", icon: "bi-x-circle-fill"},
     {label: "H (today)", count: counts.today, color: "danger", icon: "bi-calendar-day"},
     {label: "H-1", count: counts.h1, color: "warning", icon: "bi-calendar-minus"},
@@ -325,18 +347,29 @@ async function loadSummary() {
   document.querySelectorAll('.status-filter-card').forEach(card => {
     card.addEventListener('click', function() {
       let status = this.getAttribute('data-status');
-      if (status === "H-3+") status = "H-3 or more";
-      if (lastStatus === status) {
-        window.activeStatusFilter = null;
+      
+      // Reset all cards
+      document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove("active-card"));
+      
+      if (status === "Semua Data") {
+        // Show all data
+        window.activeStatusFilter = "Semua Data";
         window.table.draw();
-        lastStatus = null;
-        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove("active-card"));
-      } else {
-        window.activeStatusFilter = status;
-        window.table.draw();
-        lastStatus = status;
-        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove("active-card"));
+        lastStatus = "Semua Data";
         this.classList.add("active-card");
+      } else {
+        // Handle other status filters
+        if (status === "H-3+") status = "H-3 or more";
+        if (lastStatus === status) {
+          window.activeStatusFilter = null;
+          window.table.draw();
+          lastStatus = null;
+        } else {
+          window.activeStatusFilter = status;
+          window.table.draw();
+          lastStatus = status;
+          this.classList.add("active-card");
+        }
       }
     });
   });
@@ -436,6 +469,34 @@ loadSummary();
             });
           }
         },
+        buttons: [{
+          extend: 'excelHtml5',
+          text: '<i class="bi bi-file-earmark-spreadsheet-fill"></i> Excel',
+          className: 'btn btn-sm btn-success d-none', // Hide default button
+          filename: function() {
+            let activeStatus = window.activeStatusFilter || "Semua Data";
+            let dateStr = new Date().toISOString().split('T')[0];
+            return activeStatus === "Semua Data" ? 
+              `Reminder_Data_Semua_${dateStr}` : 
+              `Reminder_Data_${activeStatus.replace(/[()]/g, '').replace(/\s+/g, '_')}_${dateStr}`;
+          },
+          exportOptions: {
+            columns: [1, 2, 3, 4, 5, 6, 7],
+            modifier: {
+              search: 'applied',
+              order: 'applied'
+            }
+          },
+          customize: function(xlsx) {
+            let sheet = xlsx.xl.worksheets['sheet1.xml'];
+            $('row:first c', sheet).attr('s', '2');
+            $('row c[r^="F"]', sheet).each(function() {
+              if ($(this).text()) {
+                $(this).attr('s', '1');
+              }
+            });
+          }
+        }],
         columns: [
           { data: null, width: '4%', render: function(data, type, row, meta) { return meta.row + 1; } },
           { data: 'name' },
@@ -480,14 +541,6 @@ loadSummary();
         lengthChange: false,
         responsive: true,
         dom: 'Bfrtip',
-        buttons: [
-          {
-            extend: 'excelHtml5',
-            text: '<i class="bi bi-file-earmark-spreadsheet-fill"></i> Excel',
-            className: 'btn btn-sm btn-success',
-            title: 'Reminder_Data'
-          }
-        ],
         initComplete: function(){
           // hide default buttons, we'll use our own export button
           $('.dt-button').addClass('d-none');
@@ -507,27 +560,58 @@ loadSummary();
       let lastStatus = null;
       $(document).on('click', '.status-filter-card', function() {
         let status = $(this).data('status');
-        if (status === 'H-3+') status = 'H-3 or more';
-        if (lastStatus === status) {
-          window.activeStatusFilter = null;
+        
+        // Reset all cards first
+        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
+        
+        if (status === "Semua Data") {
+          // Show all data
+          window.activeStatusFilter = "Semua Data";
           table.draw();
-          lastStatus = null;
-          document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
-        } else {
-          window.activeStatusFilter = status;
-          table.draw();
-          lastStatus = status;
-          document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
+          lastStatus = "Semua Data";
           this.classList.add('active-card');
+        } else {
+          // Handle other status filters
+          if (status === 'H-3+') status = 'H-3 or more';
+          if (lastStatus === status) {
+            window.activeStatusFilter = null;
+            table.draw();
+            lastStatus = null;
+          } else {
+            window.activeStatusFilter = status;
+            table.draw();
+            lastStatus = status;
+            this.classList.add('active-card');
+          }
         }
       });
 
       // Tambahkan custom filter DataTables untuk status
+      // Model: custom filter ini memfilter baris berdasarkan nilai status yang
+      // dirender di kolom status (biasanya berwujud badge HTML). Fitur:
+      // - Gunakan `window.activeStatusFilter` yang diset saat user klik status card
+      // - Dukung `Semua Data` untuk menampilkan semua baris
+      // - Mapping singkat: 'H-3+' -> 'H-3 or more'
+      // - Hapus tag HTML sebelum perbandingan (karena status di-render sebagai badge)
+      // - Perbandingan case-insensitive
       $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-        if (!window.activeStatusFilter) return true;
-        // Kolom status ada di index 7 (kolom ke-8)
-        const statusText = data[7] ? data[7].replace(/<[^>]+>/g, '').trim() : '';
-        return statusText === window.activeStatusFilter;
+        // Jika Anda mengubah urutan kolom di thead, sesuaikan index ini (0-based)
+        const statusColumnIndex = 7; // kolom ke-8 pada tabel
+
+        const activeFilter = window.activeStatusFilter || null;
+        // Jika tidak ada filter aktif atau filter 'Semua Data', biarkan semua baris
+        if (!activeFilter || activeFilter === "Semua Data") return true;
+
+        // Ambil nilai dari kolom status, hapus tag HTML (badge) dan trim
+        const raw = data[statusColumnIndex] || '';
+        const statusText = String(raw).replace(/<[^>]+>/g, '').trim();
+
+        // Normalisasi beberapa kasus singkat (opsional)
+        let compareFilter = activeFilter;
+        if (compareFilter === 'H-3+') compareFilter = 'H-3 or more';
+
+        // Bandingkan case-insensitive
+        return statusText.toLowerCase() === String(compareFilter).toLowerCase();
       });
 
       // wire custom search box to datatable
@@ -536,16 +620,73 @@ loadSummary();
       });
 
       // custom Export button triggers datatable export
-      $('#exportBtn').on('click', function(){
-        table.button('.buttons-excel').trigger();
+      $('#exportBtn').on('click', async function(){
+        const btn = $(this);
+        const originalHtml = btn.html();
+        
+        // Get current active status
+        let activeStatus = window.activeStatusFilter || "Semua Data";
+        let filename = activeStatus === "Semua Data" ? 
+          "Reminder_Data_Semua" : 
+          `Reminder_Data_${activeStatus.replace(/[()]/g, '').replace(/\s+/g, '_')}`;
+        
+        // Get the current date for the filename
+        let today = new Date();
+        let dateStr = today.toISOString().split('T')[0];
+        
+        try {
+          // Show loading state
+          btn.html('<i class="bi bi-arrow-repeat spin me-1"></i> Exporting...').prop('disabled', true);
+          
+          // Get DataTables buttons API
+          let excelButton = table.buttons('.buttons-excel').nodes()[0];
+          
+          // Set filename for export
+          table.button('.buttons-excel').filename = `${filename}_${dateStr}`;
+          
+          // Trigger click on actual Excel button
+          $(excelButton).trigger('click');
+          
+          // Show success message
+          Swal.fire({
+            icon: 'success',
+            title: 'Export Berhasil',
+            text: `Data ${activeStatus} berhasil di-export ke Excel`,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+          });
+        } catch (error) {
+          console.error('Export error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Export Gagal',
+            text: 'Terjadi kesalahan saat mengexport data',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+          });
+        } finally {
+          // Reset button state
+          btn.html(originalHtml).prop('disabled', false);
+        }
       });
 
       // Refresh
       $('#btnRefresh').on('click', function(){
         table.ajax.reload(null, false);
-        window.activeStatusFilter = null;
+        window.activeStatusFilter = "Semua Data";
         table.draw();
-        document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove('active-card'));
+        // Activate Semua Data tab
+        document.querySelectorAll('.status-filter-card').forEach(c => {
+          if (c.getAttribute('data-status') === 'Semua Data') {
+            c.classList.add('active-card');
+          } else {
+            c.classList.remove('active-card');
+          }
+        });
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Data sudah di-refresh', showConfirmButton:false, timer:1600 });
         loadSummary();
       });
