@@ -115,12 +115,16 @@ def normalize_phone(phone: str) -> str:
 
 def build_message(record, status_label):
     return (
-        f"Halo, Bapak/Ibu {record['name']}.\n\n"
-        f"Ini adalah pengingat jadwal uji kendaraan Anda:\n"
-        f"- Nomor Kendaraan : {record['vehicle_number']}\n"
-        f"- Tanggal Uji     : {record['test_date']}\n"
-        f"- Status Reminder : {status_label}\n\n"
-        "Mohon hadir tepat waktu di lokasi uji kendaraan.\nTerima kasih.\n"
+        f"Halo Sdr/i {record['name']} (sesuai STNK) \n\n"
+            f"Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {record['vehicle_number']} \n"
+            f"Nomor Uji : {record['no_uji']} \n"
+            f"Jenis Kendaraan : {record['jenis_kendaraan']} \n"
+            f"Tanggal Uji Kendaraan: {record['test_date']}\n\n"
+            f"Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n"
+            f"Pastikan kendaraan anda sudah siap diuji dan layak jalan. \n"
+            f"Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n"
+            f"Harap hadir sesuai jadwal \n"
+            f"Terima Kasih - Dishub Kota Surakarta\n"
     )
 
 def send_whatsapp_message(phone, message_text):
@@ -227,10 +231,16 @@ def send_one(reminder_id):
         reminder = dict(row)
 
         message = (
-            f"Halo {reminder['name']} 🚗\n\n"
-            f"Nomor Kendaraan: {reminder['vehicle_number']}\n"
+            f"Halo Sdr/i {reminder['name']} (sesuai STNK) \n\n"
+            f"Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {reminder['vehicle_number']} \n"
+            f"Nomor Uji : {reminder['no_uji']} \n"
+            f"Jenis Kendaraan : {reminder['jenis_kendaraan']} \n"
             f"Tanggal Uji Kendaraan: {reminder['test_date']}\n\n"
-            f"Harap hadir sesuai jadwal. - Dishub"
+            f"Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n"
+            f"Pastikan kendaraan anda sudah siap diuji dan layak jalan. \n"
+            f"Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n"
+            f"Harap hadir sesuai jadwal \n"
+            f"Terima Kasih - Dishub Kota Surakarta\n"
         )
 
         phone = normalize_phone(reminder.get('phone') or "")
