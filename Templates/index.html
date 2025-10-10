@@ -43,7 +43,8 @@
       font-size: 26px;
       font-weight: 700;
       margin-bottom: 20px;
-
+    }
+    .header-title.gradient-text {
       /* Gradient text */
       background: linear-gradient(90deg, #00e676, #00bcd4, #448aff);
       background-clip: text;
@@ -192,6 +193,12 @@
       border-left: 4px solid #a16207;
       font-weight: 600;
     }
+    .vertical-tabs .status-tab[data-status="H-2"].active {
+      background: #e0f2f7;
+      color: #0288d1;
+      border-left: 4px solid #0288d1;
+      font-weight: 600;
+    }
     .vertical-tabs .status-tab[data-status="H-3 or more"].active {
       background: #e6f8ef;
       color: #0f9d58;
@@ -240,15 +247,25 @@
         border-bottom: 4px solid #be123c;
         border-left: none;
       }
-      .vertical-tabs .status-tab[data-status="H-1"].active {
-        border-bottom: 4px solid #a16207;
-        border-left: none;
-      }
-      .vertical-tabs .status-tab[data-status="H-3 or more"].active {
-        border-bottom: 4px solid #0f9d58;
-        border-left: none;
-      }
-      .reminder-table-wrapper {
+    .vertical-tabs .status-tab[data-status="H-1"].active {
+      background: #fff8e8;
+      color: #a16207;
+      border-left: 4px solid #a16207;
+      font-weight: 600;
+    }
+    .vertical-tabs .status-tab[data-status="H-2"].active {
+      background: #e0f2f7;
+      color: #0288d1;
+      border-left: 4px solid #0288d1;
+      font-weight: 600;
+    }
+    .vertical-tabs .status-tab[data-status="H-3 or more"].active {
+      background: #e6f8ef;
+      color: #0f9d58;
+      border-left: 4px solid #0f9d58;
+      font-weight: 600;
+    }
+    .reminder-table-wrapper {
         border-radius: 0 0 0.5rem 0.5rem;
         border-top: none;
         border-left: 1px solid #dee2e6;
@@ -259,7 +276,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="header-title text-center">📅 Sistem Pengingat Uji Kendaraan Dishub</div>
+    <div class="header-title gradient-text text-center">📅 Sistem Pengingat Uji Kendaraan Dishub</div>
 
     <!-- Form input -->
     <div class="card-surface">
@@ -300,9 +317,9 @@
           <div class="col-md-6">
             <label class="form-label">No. WhatsApp</label>
             <div class="input-group has-validation">
-              <input type="text" class="form-control" id="phoneInput" name="phone" placeholder="812xxxxxx">
+              <input type="text" class="form-control" id="phoneInput" name="phone" placeholder="812xxxxxx" pattern="^[0-9]{9,13}$">
               <button type="button" class="btn btn-outline-secondary" id="idFlagBtn">🇮🇩</button>
-              <div class="invalid-feedback">Format nomor WhatsApp tidak valid</div>
+              <div class="invalid-feedback">Format nomor WhatsApp tidak valid (contoh: 81234567890)</div>
             </div>
             <small class="text-muted">Format: 812xxxxxxx (tanpa awalan 0)</small>
           </div>
@@ -357,6 +374,9 @@
               </thead>
               <tbody></tbody>
             </table>
+            <div id="emptyTableMessage" class="text-center my-4 d-none">
+              <p class="text-muted">Tidak ada data pengingat untuk ditampilkan.</p>
+            </div>
           </div>
           <div class="p-3 d-flex gap-2 flex-wrap">
             <button class="btn btn-success btn-modern flex-fill" id="runNowBtn">▶️ Kirim Semua Hari Ini</button>
@@ -380,6 +400,8 @@
         bg: "#fff0f1", color: "#be123c", border: "#be123c" },
       "H-1": {
         bg: "#fff8e8", color: "#a16207", border: "#a16207" },
+      "H-2": {
+        bg: "#e0f2f7", color: "#0288d1", border: "#0288d1" }, /* Added H-2 status color */
       "H-3 or more": {
         bg: "#e6f8ef", color: "#0f9d58", border: "#0f9d58" }
     };
@@ -506,6 +528,13 @@
       if (statusFilter && statusFilter !== "") {
         filtered = filtered.filter(r => r.status === statusFilter);
       }
+
+      if (filtered.length === 0) {
+        document.getElementById('emptyTableMessage').classList.remove('d-none');
+      } else {
+        document.getElementById('emptyTableMessage').classList.add('d-none');
+      }
+
       filtered.forEach(r => {
         let badgeClass = "badge-secondary";
         switch (r.status) {
@@ -681,6 +710,16 @@
       const runNowBtn = document.getElementById("runNowBtn");
       if (runNowBtn) {
         runNowBtn.addEventListener("click", async () => {
+          const confirm = await Swal.fire({
+            title: "Kirim semua reminder hari ini?",
+            text: "Aksi ini akan mengirim semua pengingat yang jatuh tempo hari ini.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Ya, kirim sekarang",
+            cancelButtonText: "Batal"
+          });
+          if (!confirm.isConfirmed) return;
+
           await fetch(`${API_BASE}/run_now`, { method: "POST" });
           Swal.fire("▶️ Diproses", "Reminder hari ini sedang dikirim.", "info");
           loadReminders();
@@ -740,6 +779,7 @@
       { label: "Expired", value: "Expired" },
       { label: "H (today)", value: "H (today)" },
       { label: "H-1", value: "H-1" },
+      { label: "H-2", value: "H-2" }, /* Added H-2 status */
       { label: "H-3 or more", value: "H-3 or more" }
     ];
     function renderStatusTabs() {
