@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login WhatsApp - Reminder</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+  <!-- Icons & QR Library -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
   <style>
-    /* ---------- Tema Senada Dashboard ---------- */
     :root {
       --bg1: #f6fbff;
       --accent1: #81d4fa;
@@ -44,10 +46,9 @@
 
     h2 {
       background: linear-gradient(90deg,#00e676,#00bcd4,#448aff);
+      background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
-      color: transparent;
       font-weight: 700;
       font-size: 24px;
       margin-bottom: 12px;
@@ -65,7 +66,6 @@
       justify-content: center;
       margin-bottom: 20px;
     }
-
     #qrcode canvas {
       border: 6px solid #f1f5f9;
       border-radius: 12px;
@@ -75,7 +75,6 @@
       height: auto;
     }
 
-    /* Spinner modern */
     .spinner {
       width: 48px;
       height: 48px;
@@ -87,7 +86,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Checkmark sukses */
     .checkmark {
       display: none;
       font-size: 3.5rem;
@@ -103,7 +101,6 @@
       transform: scale(1);
     }
 
-    /* Status messages */
     .status-message {
       padding: 10px 15px;
       border-radius: 8px;
@@ -116,23 +113,7 @@
       color: var(--error);
       border-left: 4px solid var(--error);
     }
-    .status-message.success {
-      background-color: rgba(34, 197, 94, 0.1);
-      color: var(--success);
-      border-left: 4px solid var(--success);
-    }
-    .status-message.warning {
-      background-color: rgba(245, 158, 11, 0.1);
-      color: var(--warning);
-      border-left: 4px solid var(--warning);
-    }
-    .status-message.info {
-      background-color: rgba(59, 130, 246, 0.1);
-      color: var(--info);
-      border-left: 4px solid var(--info);
-    }
 
-    /* Button styles */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -165,23 +146,13 @@
       cursor: not-allowed;
     }
 
-    /* Animasi halaman */
-    .fade-out { animation: fadeOut 0.8s forwards; }
     @keyframes fadeOut { to { opacity: 0; transform: scale(1.05); } }
     @keyframes fadeIn { from {opacity:0; transform:translateY(10px)} to {opacity:1; transform:translateY(0)} }
-    
-    /* Responsivitas */
+
     @media (max-width: 480px) {
-      .card {
-        padding: 30px 20px;
-      }
-      h2 {
-        font-size: 22px;
-      }
-      #qrcode canvas {
-        max-width: 90%;
-        height: auto;
-      }
+      .card { padding: 30px 20px; }
+      h2 { font-size: 22px; }
+      #qrcode canvas { max-width: 90%; }
     }
   </style>
 </head>
@@ -190,24 +161,22 @@
     <h2>Login WhatsApp</h2>
     <p id="status">🔄 Mengecek status koneksi...</p>
     <p id="qrTimer" style="font-size: 0.9rem; color: var(--muted); display: none;"></p>
-    
-    <!-- Status messages -->
+
     <div id="errorMessage" class="status-message error">
-      <i class="bi bi-exclamation-triangle-fill"></i> 
+      <i class="bi bi-exclamation-triangle-fill"></i>
       <span id="errorText">Terjadi kesalahan</span>
     </div>
-    
+
     <div id="qrcode"></div>
     <div class="spinner" id="spinner"></div>
     <div class="checkmark" id="checkmark">✔</div>
-    
+
     <button id="refreshBtn" class="btn btn-primary" style="display: none;">
       <i class="bi bi-arrow-clockwise"></i> Refresh QR Code
     </button>
   </div>
 
   <script>
-    // Elements
     const statusEl = document.getElementById("status");
     const qrcodeEl = document.getElementById("qrcode");
     const spinnerEl = document.getElementById("spinner");
@@ -215,181 +184,130 @@
     const refreshBtn = document.getElementById("refreshBtn");
     const errorMessage = document.getElementById("errorMessage");
     const qrTimerEl = document.getElementById("qrTimer");
-    
-    // Variables
-    let qrCheckInterval;
+
     let qrCountdownInterval;
-    let connectionFailed = false;
-    let lastQrTimestamp = 0;
-    const QR_EXPIRATION_TIME = 60; // seconds
-    
-    // Show error message
+    let pollingInterval;
+    const QR_EXPIRATION_TIME = 60; // detik
+
     function showError(message) {
       errorMessage.style.display = "block";
       document.getElementById("errorText").textContent = message;
-      
-      // Show refresh button after error
       refreshBtn.style.display = "inline-flex";
       spinnerEl.style.display = "none";
-      qrTimerEl.style.display = "none"; // Hide timer on error
-      clearInterval(qrCountdownInterval); // Clear countdown
+      qrTimerEl.style.display = "none";
+      clearInterval(qrCountdownInterval);
+      clearInterval(pollingInterval);
     }
-    
-    // Hide error message
-    function hideError() {
-      errorMessage.style.display = "none";
-    }
+
+    function hideError() { errorMessage.style.display = "none"; }
 
     function startQrCountdown() {
       let timeLeft = QR_EXPIRATION_TIME;
       qrTimerEl.style.display = "block";
       qrTimerEl.textContent = `QR akan kadaluarsa dalam ${timeLeft} detik`;
 
-      clearInterval(qrCountdownInterval); // Clear any existing interval
+      clearInterval(qrCountdownInterval);
       qrCountdownInterval = setInterval(() => {
         timeLeft--;
         if (timeLeft > 0) {
           qrTimerEl.textContent = `QR akan kadaluarsa dalam ${timeLeft} detik`;
         } else {
           qrTimerEl.textContent = "QR telah kadaluarsa. Silakan refresh.";
-          refreshBtn.style.display = "inline-flex"; // Show refresh button
+          qrcodeEl.innerHTML = "<small style='color:var(--muted)'>QR kadaluarsa</small>"; // ✅ update
+          refreshBtn.style.display = "inline-flex";
           clearInterval(qrCountdownInterval);
         }
       }, 1000);
     }
-    
-    // Load QR code
-    async function loadQR(forceRefresh = false) {
+
+    async function fetchQR() {
       try {
-        hideError();
-        
-        // Don't refresh too frequently unless forced
-        const now = Date.now();
-        if (!forceRefresh && now - lastQrTimestamp < 4000) {
-          return;
-        }
-        
-        // Check connection status first
-        const statusRes = await fetch("http://localhost:3000/status");
-        const statusData = await statusRes.json();
-
-        if (statusData.connected) {
-          // Show connecting animation
-          statusEl.innerHTML = "<i class='bi bi-wifi'></i> Menyambungkan ke WhatsApp...";
-          spinnerEl.style.display = "block";
-          qrcodeEl.innerHTML = "";
-          refreshBtn.style.display = "none";
-          checkmarkEl.classList.remove("show");
-          qrTimerEl.style.display = "none"; // Hide timer
-          clearInterval(qrCountdownInterval); // Clear countdown
-
-          // After 2 seconds, show success
-          setTimeout(() => {
-            statusEl.innerHTML = "<i class='bi bi-check-circle-fill'></i> Terkoneksi ke WhatsApp!";
-            spinnerEl.style.display = "none";
-            checkmarkEl.classList.add("show");
-
-            // Fade out before redirect
-            setTimeout(() => { document.body.classList.add("fade-out"); }, 1200);
-            setTimeout(() => { window.location.href = "index.html"; }, 2000);
-          }, 2000);
-
-          // Clear interval
-          if (qrCheckInterval) {
-            clearInterval(qrCheckInterval);
-          }
-          return;
-        }
-
-        // If not connected, get QR code
-        if (forceRefresh) {
-          statusEl.innerHTML = "<i class='bi bi-arrow-repeat'></i> Memuat ulang QR code...";
-          spinnerEl.style.display = "block";
-          qrcodeEl.innerHTML = "";
-          qrTimerEl.style.display = "none"; // Hide timer during refresh
-          clearInterval(qrCountdownInterval); // Clear countdown
-        }
-        
         const res = await fetch("http://localhost:3000/qr");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`); // ✅ update
         const data = await res.json();
-        lastQrTimestamp = now;
 
         if (data.success && data.qr) {
-          // Show QR code
-          statusEl.innerHTML = "<i class='bi bi-qr-code-scan'></i> Scan QR berikut:";
-          qrcodeEl.innerHTML = "";
-          spinnerEl.style.display = "none";
-          
-          // Generate QR code
-          QRCode.toCanvas(data.qr, { width: 240 }, (err, canvas) => {
-            if (!err) {
-              qrcodeEl.appendChild(canvas);
-              refreshBtn.style.display = "none"; // Hide refresh button initially
-              startQrCountdown(); // Start countdown
-            }
-          });
-          
-          // Reset connection failed flag
-          connectionFailed = false;
-        } else if (data.message) {
-          // Show message from server
-          statusEl.innerText = data.message;
-          qrTimerEl.style.display = "none"; // Hide timer
-          clearInterval(qrCountdownInterval); // Clear countdown
-          
-          // If already logged in
-          if (data.message.includes("login") || data.message.includes("Login")) {
-            checkmarkEl.classList.add("show");
-            spinnerEl.style.display = "none";
-            setTimeout(() => { window.location.href = "index.html"; }, 2000);
-          }
+          renderQR(data.qr);
+        } else if (/sudah terkoneksi/i.test(data.message || "")) { // ✅ update
+          onConnected();
+        } else {
+          statusEl.textContent = data.message || "Menunggu QR...";
         }
       } catch (err) {
-        console.error("Error loading QR:", err);
-        
-        // Show error message
-        statusEl.innerHTML = "<i class='bi bi-exclamation-circle'></i> Gagal terhubung";
-        showError("Tidak dapat terhubung ke server WhatsApp. Pastikan server berjalan.");
-        
-        // Set connection failed flag
-        connectionFailed = true;
-        
-        // Clear QR code
-        qrcodeEl.innerHTML = "";
+        console.error("QR fetch error:", err);
+        showError("Tidak dapat terhubung ke server. Pastikan server berjalan.");
       }
     }
 
-    // Initial load
-    loadQR();
-    
-    // Set up interval for checking
-    qrCheckInterval = setInterval(() => {
-      if (!connectionFailed) {
-        loadQR();
-      }
-    }, 5000);
-    
-    // Refresh button click handler
-    refreshBtn.addEventListener("click", () => {
+    function renderQR(qr) {
+      hideError();
+      qrcodeEl.innerHTML = "";
+      spinnerEl.style.display = "none";
+      statusEl.innerHTML = "<i class='bi bi-qr-code-scan'></i> Scan QR berikut:";
+      QRCode.toCanvas(qr, { width: 240 }, (err, canvas) => { // ✅ perbaikan posisi argumen
+        if (!err && canvas) {
+          qrcodeEl.appendChild(canvas);
+          refreshBtn.style.display = "none";
+          startQrCountdown();
+        } else {
+          showError("Gagal membuat QR.");
+        }
+      });
+    }
+
+    function onConnected() {
+      statusEl.innerHTML = "<i class='bi bi-check-circle-fill'></i> Terkoneksi ke WhatsApp!";
+      spinnerEl.style.display = "none";
+      checkmarkEl.classList.add("show");
+      clearInterval(qrCountdownInterval);
+      clearInterval(pollingInterval);
+      qrTimerEl.style.display = "none";
+
+      setTimeout(() => document.body.classList.add("fade-out"), 1200);
+      setTimeout(() => {
+        sessionStorage.setItem('justLoggedIn', 'true');
+        window.location.href = "http://localhost:3000/";
+      }, 2000);
+    }
+
+    function startQRStream() {
+      const source = new EventSource("http://localhost:3000/qr-stream");
+      source.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.qr) renderQR(data.qr);
+        else if (data.connected) onConnected();
+      };
+      source.onerror = () => {
+        console.warn("SSE terputus, fallback ke polling...");
+        source.close();
+        pollingInterval = setInterval(fetchQR, 5000); // ✅ fallback polling
+      };
+    }
+
+    refreshBtn.addEventListener("click", async () => {
       refreshBtn.disabled = true;
       refreshBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Memuat...';
-      
-      // Force refresh QR
-      loadQR(true)
-        .finally(() => {
-          setTimeout(() => {
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh QR Code';
-          }, 2000);
-        });
-    });
-    
-    // Handle visibility change (tab switching)
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && !connectionFailed) {
-        loadQR(true);
+      qrcodeEl.innerHTML = "";
+      statusEl.textContent = "🔄 Memuat QR baru...";
+      spinnerEl.style.display = "block"; // ✅ feedback visual
+
+      try {
+        const res = await fetch("http://localhost:3000/reset-auth", { method: "DELETE" });
+        const data = await res.json();
+        console.log(data.message);
+        fetchQR();
+      } catch {
+        showError("Gagal memuat ulang QR");
+      } finally {
+        setTimeout(() => {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh QR Code';
+        }, 2000);
       }
     });
+
+    // Jalankan
+    startQRStream(); // ✅ jalankan SSE (auto fallback kalau error)
   </script>
 </body>
 </html>

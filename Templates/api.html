@@ -195,9 +195,9 @@
         <small class="text-muted mt-2">Kelola data pengingat kendaraan</small>
       </div>
       <div class="d-flex flex-column align-items-center">
-        <a href="http://localhost:3000/" class="btn btn-custom btn-reminder">
+        <button id="btnReminder" class="btn btn-custom btn-reminder">
           <i class="bi bi-bell"></i> Sistem Pengingat
-        </a>
+        </button>
         <small class="text-muted mt-2">Lihat dan kirim pengingat WhatsApp</small>
       </div>
     </div>
@@ -306,6 +306,11 @@
         }
       }
     }, true);
+
+    // Sistem Pengingat button
+    document.getElementById("btnReminder").addEventListener("click", function() {
+      window.location.href = "http://localhost:3000/login.html";
+    });
   </script>
 
 </body>

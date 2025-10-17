@@ -811,5 +811,38 @@
       }
     });
   </script>
+
+  <script>
+    async function checkWhatsAppConnection() {
+      try {
+        const res = await fetch("http://localhost:3000/qr");
+        const data = await res.json();
+
+        if (!data.success && (!data.connection || data.connection.connection !== "open")) {
+          console.warn("Belum login WhatsApp, redirect ke halaman login...");
+          window.location.href = "http://localhost:3000/login.html";
+        } else {
+          console.log("✅ WhatsApp sudah terkoneksi, lanjutkan akses sistem pengingat.");
+        }
+      } catch (err) {
+        console.error("Gagal memeriksa koneksi WhatsApp:", err);
+        // kalau gagal konek ke server, anggap belum login
+        window.location.href = "http://localhost:3000/login.html";
+      }
+    }
+
+    // Delay the check to avoid immediate redirect on page load
+    setTimeout(() => {
+      document.addEventListener("DOMContentLoaded", () => {
+        // Skip check if just logged in
+        if (sessionStorage.getItem('justLoggedIn') === 'true') {
+          sessionStorage.removeItem('justLoggedIn');
+          console.log("Just logged in, skipping connection check.");
+          return;
+        }
+        checkWhatsAppConnection();
+      });
+    }, 1000);
+  </script>
 </body>
 </html>
