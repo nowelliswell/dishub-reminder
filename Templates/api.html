@@ -10,182 +10,143 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 20px;
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #fbbf24 100%);
-    }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: #0b41d4;
+    overflow: hidden; /* agar gear tidak keluar layar */
+    position: relative;
+  }
 
-    .card-home {
-      background: #fff;
-      border-radius: 20px;
-      padding: 50px 40px;
-      box-shadow: 0 6px 30px rgba(0,0,0,0.08);
-      text-align: center;
-      max-width: 650px;
-      width: 100%;
-      animation: fadeIn 1s ease;
-    }
+  #cyber-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+  .card-home {
+    background: #fff;
+    border-radius: 20px;
+    padding: 50px 40px;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.08);
+    text-align: center;
+    max-width: 650px;
+    width: 100%;
+    animation: fadeIn 1s ease;
+    z-index: 10;
+    position: relative;
+  }
 
-    h1 {
-      font-weight: 700;
-      font-size: 2.2rem;
-      background: linear-gradient(90deg, #00c6ff, #0072ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      color: transparent;
-      margin-bottom: 15px;
-    }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-    p {
-      color: #546e7a;
-      font-size: 1.05rem;
-      margin-bottom: 25px;
-    }
+  h1 {
+    font-weight: 700;
+    font-size: 2.2rem;
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 15px;
+  }
 
-    .icon-home {
-      font-size: 64px;
-      margin-bottom: 20px;
-      color: #0072ff;
-    }
-    .icon-home img {
-      width: 200px;
-      height: auto;
-      max-width: 100%;
-    }
+  p {
+    color: #546e7a;
+    font-size: 1.05rem;
+    margin-bottom: 25px;
+  }
 
-    .btn-custom {
-      border-radius: 14px;
-      font-weight: 600;
-      padding: 14px 24px;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-    }
+  .icon-home img {
+    width: 200px;
+    height: auto;
+    max-width: 100%;
+  }
 
-    .btn-custom i {
-      font-size: 1.2rem;
-    }
+  .btn-custom {
+    border-radius: 14px;
+    font-weight: 600;
+    padding: 14px 24px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  }
 
-    .btn-dashboard {
-      background: linear-gradient(135deg, #4cafef, #0072ff);
-      color: #fff;
-    }
+  .btn-dashboard {
+    background: linear-gradient(135deg, #4cafef, #0072ff);
+    color: #fff;
+  }
 
-    .btn-reminder {
-      background: linear-gradient(135deg, #00e676, #00c853);
-      color: #fff;
-    }
+  .btn-reminder {
+    background: linear-gradient(135deg, #00e676, #00c853);
+    color: #fff;
+  }
 
-    .btn-custom:hover {
-      transform: scale(1.05) translateY(-2px);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-    }
+  .btn-custom:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  }
 
-    /* Responsiveness improvements */
-    @media (max-width: 768px) {
-      .card-home {
-        padding: 40px 30px;
-      }
-      
-      h1 {
-        font-size: 1.8rem;
-      }
-      
-      p {
-        font-size: 1rem;
-      }
-      
-      .icon-home {
-        font-size: 56px;
-      }
-    }
-    
-    @media (max-width: 576px) {
-      .card-home {
-        padding: 30px 20px;
-      }
-      
-      h1 {
-        font-size: 1.6rem;
-      }
-      
-      .btn-custom {
-        width: 100%;
-        margin-bottom: 10px;
-      }
-      
-      .d-flex.gap-3 {
-        flex-direction: column;
-        width: 100%;
-      }
-      
-      .icon-home {
-        font-size: 48px;
-      }
-    }
+  /* Responsiveness */
+  @media (max-width: 768px) {
+    .card-home { padding: 40px 30px; }
+    h1 { font-size: 1.8rem; }
+    p { font-size: 1rem; }
+  }
 
-    /* Login form styling */
-    .custom-swal-input {
-      margin-bottom: 15px;
-      border-radius: 10px;
-      border: 1px solid #e0e0e0;
-      padding: 12px 15px;
-      font-size: 1rem;
-      width: 100%;
-      transition: border-color 0.3s;
-    }
-    
-    .custom-swal-input:focus {
-      border-color: #0072ff;
-      box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2);
-      outline: none;
-    }
-    
-    .custom-swal-input::placeholder {
-      color: #9e9e9e;
-    }
-    
-    .login-form-container {
-      padding: 10px 5px;
-    }
-    
-    .login-btn-container {
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-    }
-    
-    .login-spinner {
-      display: none;
-      margin-right: 8px;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
+  @media (max-width: 576px) {
+    .card-home { padding: 30px 20px; }
+    h1 { font-size: 1.6rem; }
+    .btn-custom { width: 100%; margin-bottom: 10px; }
+    .d-flex.gap-3 { flex-direction: column; width: 100%; }
+  }
+
+  /* SweetAlert login form tetap sama */
+  .custom-swal-input {
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    padding: 12px 15px;
+    font-size: 1rem;
+    width: 100%;
+    transition: border-color 0.3s;
+  }
+
+  .custom-swal-input:focus {
+    border-color: #0072ff;
+    box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2);
+    outline: none;
+  }
+
+  .login-spinner {
+    display: none;
+    margin-right: 8px;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+  }
+</style>
+
 </head>
 <body>
+
+  <canvas id="cyber-bg"></canvas>
 
   <div class="card-home">
     <div class="icon-home"><img src="/static/uploads/Logo-Dishubkominfo-removebg-preview.png" alt="Logo Dishub Surakarta"></div>
@@ -210,6 +171,164 @@
   </div>
 
   <script>
+    // Cyber background animation
+    const canvas = document.getElementById('cyber-bg');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: null, y: null };
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function createParticles() {
+      particles = [];
+      for (let i = 0; i < 300; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.3, // Faster movement
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 1,
+          brightness: Math.random(),
+          twinkleSpeed: Math.random() * 0.03 + 0.02, // Faster twinkling
+          color: `hsl(${Math.random() * 60 + 180}, 100%, ${Math.random() * 30 + 70}%)`,
+          type: Math.random() > 0.8 ? 'shooting' : 'star' // Add shooting stars
+        });
+      }
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      const gridSize = 50;
+
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawParticles() {
+      particles.forEach(particle => {
+        // Update twinkling
+        particle.brightness += particle.twinkleSpeed;
+        const alpha = 0.5 + 0.5 * Math.sin(particle.brightness);
+
+        // Draw star with more complex shape
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Add multiple star spikes for more aesthetic look
+        const spikes = 6;
+        for (let i = 0; i < spikes; i++) {
+          const angle = (Math.PI * 2 * i) / spikes;
+          const spikeLength = particle.size * 2;
+          ctx.beginPath();
+          ctx.moveTo(particle.x, particle.y);
+          ctx.lineTo(
+            particle.x + Math.cos(angle) * spikeLength,
+            particle.y + Math.sin(angle) * spikeLength
+          );
+          ctx.strokeStyle = particle.color;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = alpha * 0.4;
+          ctx.stroke();
+        }
+
+        // Add inner glow
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+        ctx.fill();
+
+        ctx.restore();
+
+        // Draw constellation connections (connect nearby stars) - more complex
+        particles.forEach(otherParticle => {
+          if (particle !== otherParticle) {
+            const dx = otherParticle.x - particle.x;
+            const dy = otherParticle.y - particle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 120) {
+              ctx.beginPath();
+              ctx.moveTo(particle.x, particle.y);
+              ctx.lineTo(otherParticle.x, otherParticle.y);
+              ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - distance / 120) * 0.3})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+        });
+
+        // Draw connections to mouse - enhanced
+        if (mouse.x !== null && mouse.y !== null) {
+          const dx = mouse.x - particle.x;
+          const dy = mouse.y - particle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < 300) {
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - distance / 300) * 0.6})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+      });
+    }
+
+    function updateParticles() {
+      particles.forEach(particle => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawParticles();
+      updateParticles();
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      createParticles();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      mouse.x = null;
+      mouse.y = null;
+    });
+
+    resizeCanvas();
+    createParticles();
+    animate();
+
     document.getElementById("btnDashboard").addEventListener("click", function() {
       Swal.fire({
         title: 'Login Diperlukan',

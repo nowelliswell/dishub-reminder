@@ -28,9 +28,21 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: linear-gradient(120deg, #f8fafc 0%, #e9f4ff 60%, #f1f6f9 100%);
+      background: #0b41d4;
       color: #1f2937;
       padding: 15px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #cyber-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
     }
 
     .card {
@@ -42,13 +54,16 @@
       max-width: 380px;
       width: 100%;
       animation: fadeIn 0.8s ease;
+      z-index: 10;
+      position: relative;
     }
 
     h2 {
-      background: linear-gradient(90deg,#00e676,#00bcd4,#448aff);
-      background-clip: text;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
       font-weight: 700;
       font-size: 24px;
       margin-bottom: 12px;
@@ -157,6 +172,8 @@
   </style>
 </head>
 <body>
+  <canvas id="cyber-bg"></canvas>
+
   <div class="card">
     <h2>Login WhatsApp</h2>
     <p id="status">🔄 Mengecek status koneksi...</p>
@@ -305,6 +322,164 @@
         }, 2000);
       }
     });
+
+    // Cyber background animation
+    const canvas = document.getElementById('cyber-bg');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: null, y: null };
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function createParticles() {
+      particles = [];
+      for (let i = 0; i < 300; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.3, // Faster movement
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 1,
+          brightness: Math.random(),
+          twinkleSpeed: Math.random() * 0.03 + 0.02, // Faster twinkling
+          color: `hsl(${Math.random() * 60 + 180}, 100%, ${Math.random() * 30 + 70}%)`,
+          type: Math.random() > 0.8 ? 'shooting' : 'star' // Add shooting stars
+        });
+      }
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      const gridSize = 50;
+
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawParticles() {
+      particles.forEach(particle => {
+        // Update twinkling
+        particle.brightness += particle.twinkleSpeed;
+        const alpha = 0.5 + 0.5 * Math.sin(particle.brightness);
+
+        // Draw star with more complex shape
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Add multiple star spikes for more aesthetic look
+        const spikes = 6;
+        for (let i = 0; i < spikes; i++) {
+          const angle = (Math.PI * 2 * i) / spikes;
+          const spikeLength = particle.size * 2;
+          ctx.beginPath();
+          ctx.moveTo(particle.x, particle.y);
+          ctx.lineTo(
+            particle.x + Math.cos(angle) * spikeLength,
+            particle.y + Math.sin(angle) * spikeLength
+          );
+          ctx.strokeStyle = particle.color;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = alpha * 0.4;
+          ctx.stroke();
+        }
+
+        // Add inner glow
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+        ctx.fill();
+
+        ctx.restore();
+
+        // Draw constellation connections (connect nearby stars) - more complex
+        particles.forEach(otherParticle => {
+          if (particle !== otherParticle) {
+            const dx = otherParticle.x - particle.x;
+            const dy = otherParticle.y - particle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 120) {
+              ctx.beginPath();
+              ctx.moveTo(particle.x, particle.y);
+              ctx.lineTo(otherParticle.x, otherParticle.y);
+              ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - distance / 120) * 0.3})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+        });
+
+        // Draw connections to mouse - enhanced
+        if (mouse.x !== null && mouse.y !== null) {
+          const dx = mouse.x - particle.x;
+          const dy = mouse.y - particle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < 300) {
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - distance / 300) * 0.6})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+      });
+    }
+
+    function updateParticles() {
+      particles.forEach(particle => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawParticles();
+      updateParticles();
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      createParticles();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      mouse.x = null;
+      mouse.y = null;
+    });
+
+    resizeCanvas();
+    createParticles();
+    animate();
 
     // Jalankan
     startQRStream(); // ✅ jalankan SSE (auto fallback kalau error)
