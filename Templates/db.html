@@ -22,27 +22,111 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    /* ---------- Database Page Specific Styles ---------- */
-    body{
+    /* =========================
+       THEME & LAYOUT VARIABLES
+       ========================= */
+    :root{
+      --brand-blue-1: #0B41D4;
+      --brand-blue-2: #00C6FF; /* cyan for gradient */
+      --brand-green: #1DB954;
+      --brand-red: #E74C3C;
+      --brand-yellow: #F1C40F;
+      --muted: #6C757D;
+      --card-shadow: 0 12px 30px rgba(11,65,212,0.06);
+      --glass: rgba(255,255,255,0.98);
+      --btn-gradient: linear-gradient(135deg, var(--brand-blue-1) 0%, var(--brand-blue-2) 100%);
+      --btn-height: 44px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f8fc;
+      color: #1f2937;
       padding: 30px 18px;
     }
 
+    /* ===== Header ===== */
     .header-title{
-    font-weight:700;
-    font-size:28px;
+      font-weight:800;
+      font-size:28px;
+      color:#08203f;
+      display:flex;
+      align-items:center;
+      gap:10px;
     }
-    .header-title.gradient-text{
-    background: linear-gradient(90deg,#000000,#000000,#000000);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
+    .header-title i { color:var(--brand-blue-1); font-size:28px; }
+
+    /* ===== Unified primary button style ===== */
+    .btn-primary-custom {
+      height: var(--btn-height);
+      min-width:140px;
+      padding:0 18px;
+      border-radius:12px;
+      border: none;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      justify-content:center;
+      font-weight:700;
+      color:#ffffff;
+      background: var(--btn-gradient);
+      box-shadow: 0 8px 24px rgba(11,65,212,0.10);
+      transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
     }
-    .card-surface{
-      background: rgba(255,255,255,0.98);
-      border-radius: 14px;
-      box-shadow: var(--card-shadow);
-      padding: 22px;
+    .btn-primary-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 38px rgba(11,65,212,0.14);
+      filter: brightness(0.98);
+    }
+    /* Icon sizing inside primary buttons */
+    .btn-primary-custom .bi { font-size:18px; }
+
+    /* Secondary / other action buttons */
+    .btn-modern {
+      height: var(--btn-height);
+      padding:0 16px;
+      border-radius:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      font-weight:700;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .btn-add {
+      background: linear-gradient(135deg,#5eead4,#60a5fa);
+      border: none;
+      color:#04243a;
+    }
+    .btn-add:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 24px rgba(94, 234, 212, 0.4);
+    }
+    .btn-refresh {
+      background:#fff;
+      border:1px solid #e6eef9;
+      color:#1f2937;
+    }
+    .btn-refresh:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 24px rgba(108, 117, 125, 0.2);
+    }
+    .btn-logout {
+      background: linear-gradient(135deg, #6ac030, #0bff03);
+      border: none;
+      color: #ffffff;
+    }
+    .btn-logout:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 24px rgba(106, 192, 48, 0.4);
+    }
+
+    /* ===== Cards & form ===== */
+    .card-surface {
+      background:var(--glass);
+      border-radius:14px;
+      box-shadow:var(--card-shadow);
+      padding:22px;
+      margin-bottom:20px;
     }
 
     /* Stats cards */
@@ -60,88 +144,86 @@
 
     /* Table look */
     .table-card{
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: var(--card-shadow);
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      box-shadow:var(--card-shadow);
+      margin-bottom:14px;
     }
     .table thead th{
       background: linear-gradient(90deg,#b3c6ff,#81ecec);
-      color: #1f2937;
-      font-weight:600;
-      font-size:13px;
+      border-bottom:none;
+      color:#04243a;
+      font-weight:700;
     }
-    .badge-status { font-weight:600; padding:6px 10px; border-radius:999px; font-size:12px; display:inline-block;}
-    .badge-success { background:#e6f8ef; color:#0f9d58; border:1px solid rgba(15,157,88,0.08); }
-    .badge-warning { background:#fff8e8; color:#a16207; border:1px solid rgba(161,98,7,0.08); }
-    .badge-danger { background:#fff0f1; color:#be123c; border:1px solid rgba(190,18,60,0.08); }
-    .badge-secondary { background:#f0f4f8; color:#475569; border:1px solid rgba(71,85,105,0.05); }
-
-    /* Buttons modern */
-    .btn-modern { border-radius:12px; padding:10px 16px; font-weight:600; box-shadow: 0 6px 18px rgba(60,64,67,0.06); }
-    .btn-add { background: linear-gradient(135deg,#5eead4,#60a5fa); border:none; color:#04243a; }
-    .btn-refresh { background:#fff; border:1px solid #e6eef9; color:#1f2937; }
-      .btn-logout {
-        background: linear-gradient(135deg, #6ac030, #0bff03);
-        border: none;
-        color: #ffffff;
-      }
+    .badge-status { font-weight:700; padding:6px 10px; border-radius:999px; font-size:.85rem; display:inline-block; }
+    .badge-success { background:#e6f8ef; color:#0f9d58; }
+    .badge-warning { background:#fff8e8; color:#a16207; }
+    .badge-danger { background:#fff0f1; color:#be123c; }
+    .badge-secondary { background:#f0f4f8; color:#475569; }
 
     /* small helpers */
     .controls { display:flex; gap:12px; align-items:center; }
     .search-input{ border-radius:12px; padding:10px 14px; border:1px solid #e6eef9; width:320px; }
 
-    /* responsive */
-    @media (max-width: 900px){
-      .stats-grid{ grid-template-columns: repeat(1,1fr) !important; }
-      .search-input{ width:100%; }
+    /* Status filter cards */
+    .status-filter-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+      padding: 20px 24px;
+      transition: all 0.2s ease;
+      cursor: pointer;
     }
-    
-    @media (max-width: 768px) {
-      .header-title { font-size: 24px; }
-      .controls { flex-direction: column; width: 100%; }
-      .search-input { width: 100%; margin-bottom: 10px; }
-      #exportBtn { width: 100%; }
+    .status-filter-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
     }
-    
-    @media (max-width: 576px) {
-      .col-4.text-end { text-align: left !important; margin-top: 15px; }
-      .d-inline-block { display: flex !important; flex-direction: column; gap: 8px; }
-      .d-inline-block .btn { width: 100%; margin-left: 0 !important; margin-bottom: 5px; }
-      .header-title { font-size: 22px; }
-      .card-surface { padding: 15px; }
-      .table-responsive { margin: 0 -15px; }
-    }
-
     .status-filter-card.active-card {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      background: var(--btn-gradient);
       color: white !important;
-      transform: translateY(-5px) scale(1.03);
-      box-shadow: 0 6px 15px rgba(59,130,246,0.4);
-      transition: all 0.3s ease-in-out;
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 8px 24px rgba(11,65,212,0.4);
     }
     .status-filter-card.active-card h6,
     .status-filter-card.active-card h3,
     .status-filter-card.active-card i {
       color: white !important;
     }
-    
-    /* Info color styling for Semua Data card */
-    .border-info {
-      border-color: #0dcaf0 !important;
-    }
-    .text-info {
-      color: #0dcaf0 !important;
-    }
     .status-filter-card[data-status="Semua Data"].active-card {
       background: linear-gradient(135deg, #0dcaf0, #0097b2);
     }
-    
+
     /* Export button spin animation */
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
-    
+
+    /* responsive */
+    @media(max-width:900px){
+      .controls { flex-direction:column; width:100%; }
+      .search-input{ width:100%; }
+    }
+
+    @media(max-width:768px){
+      .header-title { font-size:24px; }
+      .controls { flex-direction:column; width:100%; }
+      .search-input { width:100%; margin-bottom:10px; }
+      #exportBtn { width:100%; }
+    }
+
+    @media(max-width:576px){
+      .col-4.text-end { text-align:left !important; margin-top:15px; }
+      .d-inline-block { display:flex !important; flex-direction:column; gap:8px; }
+      .d-inline-block .btn { width:100%; margin-left:0 !important; margin-bottom:5px; }
+      .header-title { font-size:22px; }
+      .card-surface { padding:15px; }
+      .table-responsive { margin:0 -15px; }
+    }
   </style>
 </head>
 <body>
@@ -166,6 +248,7 @@
       <div class="col-auto">
         <div class="d-flex gap-2">
           <button id="btnRefresh" class="btn btn-refresh btn-modern"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</button>
+          <button id="btnDashboard" class="btn btn-primary btn-modern" onclick="window.location.href='/dashboard'"><i class="bi bi-bar-chart me-2"></i>Monitoring</button>
           <button id="btnAdd" class="btn btn-add btn-modern"><i class="bi bi-plus-lg me-2"></i>Tambah Data</button>
           <button id="btnLogout" class="btn btn-logout btn-modern"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
         </div>
@@ -289,11 +372,7 @@
     </div>
   </div>
 
-  <div class="row mb-4" id="statusSummary">
-  <!-- Card indikator akan diisi lewat JS -->
-</div>
-
-<script>
+  <script>
 async function loadSummary() {
   const res = await fetch("/list?format=json");
   const data = await res.json();
@@ -331,39 +410,6 @@ async function loadSummary() {
       </div>
     </div>
   `).join("");
-
-  // filter event
-  let lastStatus = null;
-  window.activeStatusFilter = null;
-  document.querySelectorAll('.status-filter-card').forEach(card => {
-    card.addEventListener('click', function() {
-      let status = this.getAttribute('data-status');
-      
-      // Reset all cards
-      document.querySelectorAll('.status-filter-card').forEach(c => c.classList.remove("active-card"));
-      
-      if (status === "Semua Data") {
-        // Show all data
-        window.activeStatusFilter = "Semua Data";
-        window.table.draw();
-        lastStatus = "Semua Data";
-        this.classList.add("active-card");
-      } else {
-        // Handle other status filters
-        if (status === "H-3+") status = "H-3 or more";
-        if (lastStatus === status) {
-          window.activeStatusFilter = null;
-          window.table.draw();
-          lastStatus = null;
-        } else {
-          window.activeStatusFilter = status;
-          window.table.draw();
-          lastStatus = status;
-          this.classList.add("active-card");
-        }
-      }
-    });
-  });
 }
 
 // panggil saat load halaman
@@ -730,7 +776,7 @@ loadSummary();
             })
             .then(()=> {
               table.ajax.reload(null,false);
-              refreshStats();
+              loadSummary();
               Swal.fire({ icon:'success', title:'Terhapus', text:'Data berhasil dihapus', timer:1400, showConfirmButton:false });
             })
             .catch(err=>{

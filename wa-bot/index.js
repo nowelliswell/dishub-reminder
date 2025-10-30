@@ -200,7 +200,7 @@ async function scheduleReconnect() {
 
   setTimeout(() => {
     connectToWhatsApp();
-  }, delay);
+  }, BASE_RECONNECT_DELAY);
 }
 
 // 🔹 Jalankan koneksi pertama kali

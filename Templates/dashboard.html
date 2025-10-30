@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Monitoring WhatsApp Bot - Dishub</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f8fc;
+      color: #1f2937;
+      padding: 30px 18px;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 28px;
+    }
+
+    .card-surface {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      padding: 24px;
+    }
+
+    .stat-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+      padding: 20px 24px;
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-modern {
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-refresh {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border: none;
+      color: white;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 320px !important;
+    }
+
+    .chart-container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      padding: 22px;
+    }
+
+    small.text-muted {
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+      <div class="col">
+        <div class="header-title">Dashboard Monitoring WhatsApp Bot</div>
+        <div class="text-muted mt-1">Monitoring pesan dan aktivitas bot WhatsApp - Dishub</div>
+      </div>
+      <div class="col-auto">
+        <button id="btnRefresh" class="btn btn-modern btn-refresh me-2">
+          <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+        </button>
+        <button id="btnLogout" class="btn btn-modern btn-outline-danger">
+          <i class="bi bi-box-arrow-right me-2"></i>Keluar
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistik -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="stat-card">
+          <div>
+            <div class="text-primary"><i class="bi bi-send-fill" style="font-size:28px;"></i></div>
+            <div class="fw-semibold mt-1">Pesan Keluar Hari Ini</div>
+            <small class="text-muted">Total pesan dikirim oleh bot</small>
+          </div>
+          <h3 class="text-primary mb-0" id="outCount">0</h3>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="stat-card">
+          <div>
+            <div class="text-info"><i class="bi bi-people-fill" style="font-size:28px;"></i></div>
+            <div class="fw-semibold mt-1">User Aktif</div>
+            <small class="text-muted">Jumlah data reminders aktif</small>
+          </div>
+          <h3 class="text-info mb-0" id="userCount">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grafik -->
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="chart-container">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-semibold"><i class="bi bi-bar-chart-line me-2"></i>Pesan Terkirim Per Hari</h6>
+            <small class="text-muted">Data 30 hari terakhir</small>
+          </div>
+          <canvas id="chartDaily"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="chart-container">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-semibold"><i class="bi bi-calendar3 me-2"></i>Pesan Per Bulan</h6>
+            <small class="text-muted">Data 12 bulan terakhir</small>
+          </div>
+          <canvas id="chartMonthly"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center text-muted mt-4" style="font-size:13px;">
+      Data diperbarui otomatis setiap 60 detik
+    </div>
+  </div>
+
+  <script>
+    let chartDaily, chartMonthly;
+
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('outCount').innerText = data.out ?? 0;
+        document.getElementById('userCount').innerText = data.users ?? 0;
+      } catch (e) {
+        console.error("fetchStats error", e);
+      }
+    }
+
+    function createChart(ctx, labels, data, color) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, color + 'B3'); // 70% opacity
+      gradient.addColorStop(1, color + '00'); // fade to transparent
+
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            borderColor: color,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: color
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#fff',
+              titleColor: '#111',
+              bodyColor: '#333',
+              borderColor: '#e5e7eb',
+              borderWidth: 1,
+              padding: 10,
+              displayColors: false,
+              boxPadding: 4,
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { color: '#6b7280', font: { size: 12 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { color: '#6b7280', font: { size: 12 } }
+            }
+          }
+        }
+      });
+    }
+
+    async function updateCharts() {
+      try {
+        const dailyRes = await fetch('/api/messages_timeseries?period=day&days=30');
+        const monthlyRes = await fetch('/api/messages_timeseries?period=month&months=12');
+        const daily = await dailyRes.json();
+        const monthly = await monthlyRes.json();
+
+        // Filter daily data to start from yesterday
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const dailyStartIndex = daily.labels.indexOf(yesterdayStr);
+        if (dailyStartIndex !== -1) {
+          daily.labels = daily.labels.slice(dailyStartIndex);
+          daily.data = daily.data.slice(dailyStartIndex);
+        }
+
+        // Filter monthly data to start from last month
+        const lastMonth = new Date();
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        const lastMonthStr = lastMonth.toISOString().slice(0, 7); // YYYY-MM
+        const monthlyStartIndex = monthly.labels.indexOf(lastMonthStr);
+        if (monthlyStartIndex !== -1) {
+          monthly.labels = monthly.labels.slice(monthlyStartIndex);
+          monthly.data = monthly.data.slice(monthlyStartIndex);
+        }
+
+        const ctxDaily = document.getElementById('chartDaily').getContext('2d');
+        const ctxMonthly = document.getElementById('chartMonthly').getContext('2d');
+
+        if (chartDaily) chartDaily.destroy();
+        if (chartMonthly) chartMonthly.destroy();
+
+        chartDaily = createChart(ctxDaily, daily.labels, daily.data, '#2563EB');
+        chartMonthly = createChart(ctxMonthly, monthly.labels, monthly.data, '#3B82F6');
+      } catch (e) {
+        console.error("updateCharts error", e);
+      }
+    }
+
+    document.getElementById('btnRefresh').addEventListener('click', async () => {
+      Swal.fire({
+        title: 'Refreshing Data...',
+        text: 'Sedang memuat ulang data dashboard',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        await fetchStats();
+        await updateCharts();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Data Berhasil Di-refresh',
+          text: 'Dashboard telah diperbarui dengan data terbaru',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      } catch (error) {
+        console.error('Refresh error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Refresh Data',
+          text: 'Terjadi kesalahan saat memuat ulang data',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      window.location.href = '/list';
+    });
+
+    (async function init() {
+      await fetchStats();
+      await updateCharts();
+      setInterval(async () => {
+        await fetchStats();
+        await updateCharts();
+      }, 60000);
+    })();
+  </script>
+</body>
+</html>

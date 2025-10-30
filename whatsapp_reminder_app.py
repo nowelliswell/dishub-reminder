@@ -1,3 +1,4 @@
+# backend.py
 import os
 import sqlite3
 from datetime import datetime, date
@@ -42,6 +43,15 @@ def init_db():
             phone TEXT,
             created_at TEXT NOT NULL
         )''')
+        con.execute('''CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            direction TEXT NOT NULL, -- 'in' or 'out'
+            phone TEXT,
+            message TEXT,
+            status TEXT,
+            meta TEXT,
+            created_at TEXT NOT NULL
+        )''')
 
 # ----------------- HELPERS -----------------
 def add_reminder(name, nik, vehicle_number, test_date, phone=None):
@@ -83,7 +93,6 @@ def list_reminders():
             r['color'] = color
             r['days_until'] = days_until  # penting untuk frontend filter
             r['test_date'] = test_date.strftime("%Y-%m-%d")  # normalisasi
-            # no_uji dan jenis_kendaraan sudah otomatis ada di r
             results.append(r)
         return results
 
@@ -113,41 +122,52 @@ def normalize_phone(phone: str) -> str:
         return "62" + phone
     return phone
 
+def log_message(direction, phone, message_text, status="unknown", meta=None):
+    try:
+        with get_db_connection() as con:
+            con.execute(
+                "INSERT INTO messages (direction, phone, message, status, meta, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (direction, phone, message_text, status, (meta or ""), datetime.utcnow().isoformat())
+            )
+    except Exception as e:
+        print("❌ Gagal log message:", e)
+
 def build_message(record, status_label):
     return (
         f"🚗 Halo Sdr/i {record['name']} (sesuai STNK) \n\n"
-        
         f"📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {record['vehicle_number']} \n"
         f"🔢 Nomor Uji : {record['no_uji']} \n"
         f"🚛 Jenis Kendaraan : {record['jenis_kendaraan']} \n"
         f"📆 Tanggal Uji Kendaraan: {record['test_date']}\n\n"
-
         f"⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n"
         f"✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan. \n"
         f"🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n"
         f"⏰ Harap hadir sesuai jadwal \n\n"
-
         f"🙏 Terima Kasih - Dishub Kota Surakarta\n"
     )
 
 def send_whatsapp_message(phone, message_text):
-    """Kirim ke Node API. Return dict berisi status dan info."""
+    """Kirim ke Node API. Return dict berisi status dan info. Juga log ke DB messages."""
+    phone_norm = normalize_phone(phone)
     try:
-        payload = {"phone": phone, "message": message_text}
+        payload = {"phone": phone_norm, "message": message_text}
         print(f"📤 Sending to Node API {NODE_API} payload={payload}")
         r = requests.post(NODE_API, json=payload, timeout=10)
         print("📥 Response:", r.status_code, r.text)
-        # coba parse json kalau bisa
         try:
             resp_json = r.json()
         except Exception:
             resp_json = {"raw_text": r.text}
         if r.status_code == 200:
-            return {"status": "sent via Node API", "response": resp_json}
+            result = {"status": "sent via Node API", "response": resp_json}
+            log_message("out", phone_norm, message_text, status="sent", meta=str(resp_json))
+            return result
         else:
+            log_message("out", phone_norm, message_text, status="failed", meta=str(resp_json))
             return {"status": "failed", "error": resp_json}
     except Exception as e:
         print("❌ Exception:", str(e))
+        log_message("out", phone_norm, message_text, status="error", meta=str(e))
         return {"status": "error", "error": str(e)}
 
 def run_now_check(as_of_date=None):
@@ -172,15 +192,13 @@ def run_now_check(as_of_date=None):
                 'color': color,
                 'send_result': send_result
             })
-            print(f"[{status_label}] Reminder sent to {r['name']} ({r['vehicle_number']}) → {send_result['status']}")
+            print(f"[{status_label}] Reminder sent to {r['name']} ({r['vehicle_number']}) → {send_result.get('status')}")
     return actions
 
 # ----------------- ROUTES -----------------
 
 @app.route("/", methods=["GET"])
 def api_home():
-    """Jika client minta JSON (atau param ?format=json) kembalikan JSON.
-       Jika diakses lewat browser biasa render template api.html (landing page)."""
     if request.args.get("format") == "json" or request.accept_mimetypes.best == 'application/json':
         return jsonify({
             "message": "WhatsApp Reminder API is running!",
@@ -189,7 +207,9 @@ def api_home():
                 "GET /list": "Get list of reminders",
                 "POST /run_now": "Run reminders manually",
                 "DELETE /clear": "Clear all reminders and reset IDs",
-                "POST /upload-avatar": "Upload user avatar"
+                "POST /upload-avatar": "Upload user avatar",
+                "GET /api/stats": "Stats (in/out/users)",
+                "GET /api/messages_timeseries": "messages timeseries (period=day|month)"
             }
         })
     return render_template("api.html")
@@ -232,23 +252,7 @@ def send_one(reminder_id):
             return jsonify({"error": "Reminder tidak ditemukan"}), 404
 
         reminder = dict(row)
-
-        message = (
-            f"🚗 Halo Sdr/i {reminder['name']} (sesuai STNK) \n\n"
-
-            f"📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {reminder['vehicle_number']} \n"
-            f"🔢 Nomor Uji : {reminder['no_uji']} \n"
-            f"🚛 Jenis Kendaraan : {reminder['jenis_kendaraan']} \n"
-            f"📆 Tanggal Uji Kendaraan: {reminder['test_date']}\n\n"
-
-            f"⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n"
-            f"✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan. \n"
-            f"🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n"
-            f"⏰ Harap hadir sesuai jadwal \n\n"
-
-            f"🙏 Terima Kasih - Dishub Kota Surakarta\n"
-        )
-
+        message = build_message(reminder, "manual")
         phone = normalize_phone(reminder.get('phone') or "")
         send_result = send_whatsapp_message(phone, message)
 
@@ -305,6 +309,96 @@ def http_run_now():
     actions = run_now_check(as_of_date=data.get('as_of'))
     return jsonify(actions)
 
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
+    return render_template('dashboard.html')
+
+# ----------------- STAT endpoints -----------------
+@app.route('/api/stats', methods=['GET'])
+def api_stats():
+    # in = pesan masuk hari ini, out = pesan keluar hari ini, users = jumlah rows reminders
+    today = datetime.utcnow().date().isoformat()
+    with get_db_connection() as con:
+        in_count = con.execute("SELECT COUNT(*) FROM messages WHERE direction='in' AND date(created_at)=?", (today,)).fetchone()[0]
+        out_count = con.execute("SELECT COUNT(*) FROM messages WHERE direction='out' AND date(created_at)=?", (today,)).fetchone()[0]
+        users = con.execute("SELECT COUNT(*) FROM reminders").fetchone()[0]
+    return jsonify({"in": in_count, "out": out_count, "users": users})
+
+@app.route('/api/user_count', methods=['GET'])
+def api_user_count():
+    with get_db_connection() as con:
+        users = con.execute("SELECT COUNT(*) FROM reminders").fetchone()[0]
+    return jsonify({"users": users})
+
+@app.route('/api/messages_timeseries', methods=['GET'])
+def api_messages_timeseries():
+    """
+    Query params:
+      period=day|month (default day)
+      days=30 (for period=day)
+      months=12 (for period=month)
+    Returns JSON:
+      { labels: [...], data: [...] }
+    """
+    period = request.args.get('period', 'day')
+    if period == 'month':
+        months = int(request.args.get('months', 12))
+        with get_db_connection() as con:
+            # last N months including this one
+            rows = con.execute("""
+                SELECT strftime('%Y-%m', created_at) as period, COUNT(*) as cnt
+                FROM messages
+                WHERE direction='out' AND date(created_at) >= date('now','start of month', ?)
+                GROUP BY period
+                ORDER BY period
+            """, (f"-{months-1} months",)).fetchall()
+        labels = []
+        data = []
+        # build ordered list of last months
+        from datetime import datetime
+        now = datetime.utcnow()
+        months_list = []
+        for i in range(months-1, -1, -1):
+            m = (now.replace(day=1) - __import__('datetime').timedelta(days=0)).month  # dummy to satisfy style
+        # simpler build using relativedelta isn't available; use loop:
+        months_list = []
+        for i in range(months-1, -1, -1):
+            dt = datetime(now.year, now.month, 1)
+            # subtract i months:
+            y = dt.year
+            m = dt.month - i
+            while m <= 0:
+                m += 12
+                y -= 1
+            months_list.append(f"{y:04d}-{m:02d}")
+        rowdict = {r['period']: r['cnt'] for r in rows}
+        for m in months_list:
+            labels.append(m)
+            data.append(rowdict.get(m, 0))
+        return jsonify({"labels": labels, "data": data})
+
+    else:
+        days = int(request.args.get('days', 30))
+        with get_db_connection() as con:
+            rows = con.execute("""
+                SELECT date(created_at) as day, COUNT(*) as cnt
+                FROM messages
+                WHERE direction='out' AND date(created_at) >= date('now', ?)
+                GROUP BY day
+                ORDER BY day
+            """, (f"-{days-1} days",)).fetchall()
+        labels = []
+        data = []
+        # build list of last days (YYYY-MM-DD)
+        from datetime import timedelta, datetime
+        today = datetime.utcnow().date()
+        days_list = [(today - timedelta(days=i)).isoformat() for i in range(days-1, -1, -1)]
+        rowdict = {r['day']: r['cnt'] for r in rows}
+        for d in days_list:
+            labels.append(d)
+            data.append(rowdict.get(d, 0))
+        return jsonify({"labels": labels, "data": data})
+
 # ----------------- UPLOAD AVATAR -----------------
 @app.route('/upload-avatar', methods=['POST'])
 def upload_avatar():
@@ -351,4 +445,6 @@ if __name__ == "__main__":
     print('  DELETE /clear')
     print('  POST /upload-avatar')
     print('  POST /reset-auth')
+    print('  GET /api/stats')
+    print('  GET /api/messages_timeseries?period=day|month')
     app.run(host="0.0.0.0", port=5000, debug=True)
