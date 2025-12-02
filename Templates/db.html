@@ -81,43 +81,17 @@
     /* Icon sizing inside primary buttons */
     .btn-primary-custom .bi { font-size:18px; }
 
-    /* Secondary / other action buttons */
     .btn-modern {
-      height: var(--btn-height);
-      padding:0 16px;
-      border-radius:12px;
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      font-weight:700;
-      transition: transform .12s ease, box-shadow .12s ease;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
     }
-    .btn-add {
-      background: linear-gradient(135deg,#5eead4,#60a5fa);
-      border: none;
-      color:#04243a;
-    }
-    .btn-add:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 24px rgba(94, 234, 212, 0.4);
-    }
+
     .btn-refresh {
-      background:#fff;
-      border:1px solid #e6eef9;
-      color:#1f2937;
-    }
-    .btn-refresh:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 24px rgba(108, 117, 125, 0.2);
-    }
-    .btn-logout {
-      background: linear-gradient(135deg, #6ac030, #0bff03);
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
       border: none;
-      color: #ffffff;
-    }
-    .btn-logout:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 24px rgba(106, 192, 48, 0.4);
+      color: white;
     }
 
     /* ===== Cards & form ===== */
@@ -247,10 +221,10 @@
       </div>
       <div class="col-auto">
         <div class="d-flex gap-2">
-          <button id="btnRefresh" class="btn btn-refresh btn-modern"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</button>
-          <button id="btnDashboard" class="btn btn-primary btn-modern" onclick="window.location.href='/dashboard'"><i class="bi bi-bar-chart me-2"></i>Monitoring</button>
-          <button id="btnAdd" class="btn btn-add btn-modern"><i class="bi bi-plus-lg me-2"></i>Tambah Data</button>
-          <button id="btnLogout" class="btn btn-logout btn-modern"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+          <button id="btnRefresh" class="btn btn-modern btn-refresh"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</button>
+          <button id="btnDashboard" class="btn btn-modern btn-outline-primary" onclick="window.location.href='/dashboard'"><i class="bi bi-bar-chart me-2"></i>Monitoring</button>
+          <button id="btnAdd" class="btn btn-modern btn-outline-success"><i class="bi bi-plus-lg me-2"></i>Tambah Data</button>
+          <button id="btnLogout" class="btn btn-modern btn-outline-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
         </div>
       </div>
     </div>
@@ -273,7 +247,7 @@
 
             <div class="controls">
               <input id="searchBox" class="search-input" placeholder="Cari nama, NIK, atau no kendaraan..." />
-              <button id="exportBtn" class="btn btn-outline-secondary btn-modern"><i class="bi bi-download me-1"></i>Export</button>
+              <button id="exportBtn" class="btn btn-outline-success btn-modern"><i class="bi bi-download me-1"></i>Export</button>
             </div>
           </div>
 

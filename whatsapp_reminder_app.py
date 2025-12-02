@@ -313,6 +313,10 @@ def http_run_now():
 def dashboard():
     return render_template('dashboard.html')
 
+@app.route('/pesankeluar', methods=['GET'])
+def pesankeluar():
+    return render_template('pesankeluar.html')
+
 # ----------------- STAT endpoints -----------------
 @app.route('/api/stats', methods=['GET'])
 def api_stats():
@@ -398,6 +402,39 @@ def api_messages_timeseries():
             labels.append(d)
             data.append(rowdict.get(d, 0))
         return jsonify({"labels": labels, "data": data})
+
+@app.route('/api/sent_messages', methods=['GET', 'DELETE'])
+def api_sent_messages():
+    if request.method == 'DELETE':
+        # Clear all messages
+        with get_db_connection() as con:
+            con.execute("DELETE FROM messages")
+            con.execute("DELETE FROM sqlite_sequence WHERE name='messages'")
+        return jsonify({"message": "All messages cleared"})
+
+    # GET: return list of sent messages
+    with get_db_connection() as con:
+        rows = con.execute("SELECT * FROM messages WHERE direction='out' ORDER BY created_at DESC").fetchall()
+        messages = []
+        for row in rows:
+            r = dict(row)
+            messages.append({
+                "id": r["id"],
+                "phone": r["phone"],
+                "message": r["message"],
+                "status": r["status"],
+                "timestamp": r["created_at"]
+            })
+        return jsonify(messages)
+
+@app.route('/api/message_stats', methods=['GET'])
+def api_message_stats():
+    # Return counts for success, pending, failed
+    with get_db_connection() as con:
+        success = con.execute("SELECT COUNT(*) FROM messages WHERE direction='out' AND status LIKE '%sent%' OR status LIKE '%success%' OR status LIKE '%delivered%'").fetchone()[0]
+        pending = con.execute("SELECT COUNT(*) FROM messages WHERE direction='out' AND status LIKE '%pending%' OR status LIKE '%sending%' OR status LIKE '%queued%'").fetchone()[0]
+        failed = con.execute("SELECT COUNT(*) FROM messages WHERE direction='out' AND status LIKE '%failed%' OR status LIKE '%error%' OR status LIKE '%blocked%'").fetchone()[0]
+    return jsonify({"success": success, "pending": pending, "failed": failed})
 
 # ----------------- UPLOAD AVATAR -----------------
 @app.route('/upload-avatar', methods=['POST'])

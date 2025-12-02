@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pesan Keluar - Dishub Reminder</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f8fc;
+      color: #1f2937;
+      padding: 30px 18px;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 28px;
+    }
+
+    .card-surface {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      padding: 24px;
+    }
+
+    .stat-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+      padding: 20px 24px;
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-card.active {
+      border: 3px solid #2563eb;
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    }
+
+    .btn-modern {
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-refresh {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border: none;
+      color: white;
+    }
+
+    .table-card {
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      margin-bottom: 14px;
+    }
+
+    .table thead th {
+      background: linear-gradient(90deg, #b3c6ff, #81ecec);
+      border-bottom: none;
+      color: #04243a;
+      font-weight: 700;
+    }
+
+    .badge-status {
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .badge-success {
+      background: #e6f8ef;
+      color: #0f9d58;
+    }
+
+    .badge-warning {
+      background: #fff8e8;
+      color: #a16207;
+    }
+
+    .badge-danger {
+      background: #fff0f1;
+      color: #be123c;
+    }
+
+    small.text-muted {
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+      <div class="col">
+        <div class="header-title">Pesan Keluar</div>
+        <div class="text-muted mt-1">Rincian pesan yang telah dikirim melalui WhatsApp</div>
+      </div>
+      <div class="col-auto">
+        <button id="btnRefresh" class="btn btn-modern btn-refresh me-2">
+          <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+        </button>
+        <button id="btnExport" class="btn btn-modern btn-outline-success me-2">
+          <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+        </button>
+        <button id="btnClear" class="btn btn-modern btn-outline-danger me-2">
+        <i class="bi bi-trash me-2"></i>Bersihkan Riwayat
+        </button>
+        <button id="btnBack" class="btn btn-modern btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Kembali
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistik -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card filter-card" data-filter="all" style="cursor: pointer;">
+          <div>
+            <div class="text-primary"><i class="bi bi-envelope-fill" style="font-size:28px;"></i></div>
+            <div class="fw-semibold mt-1">Semua Pesan</div>
+            <small class="text-muted">Total semua pesan</small>
+          </div>
+          <h3 class="text-primary mb-0" id="totalCount">0</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card filter-card" data-filter="success" style="cursor: pointer;">
+          <div>
+            <div class="text-success"><i class="bi bi-check-circle-fill" style="font-size:28px;"></i></div>
+            <div class="fw-semibold mt-1">Pesan Sukses</div>
+            <small class="text-muted">Pesan berhasil terkirim</small>
+          </div>
+          <h3 class="text-success mb-0" id="successCount">0</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card filter-card" data-filter="pending" style="cursor: pointer;">
+          <div>
+            <div class="text-warning"><i class="bi bi-clock-fill" style="font-size:28px;"></i></div>
+            <div class="fw-semibold mt-1">Pesan Pending</div>
+            <small class="text-muted">Pesan sedang diproses</small>
+          </div>
+          <h3 class="text-warning mb-0" id="pendingCount">0</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card filter-card" data-filter="failed" style="cursor: pointer;">
+          <div>
+            <div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size:28px;"></i></div>
+            <div class="fw-semibold mt-1">Pesan Gagal</div>
+            <small class="text-muted">Pesan gagal dikirim</small>
+          </div>
+          <h3 class="text-danger mb-0" id="failedCount">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabel Pesan -->
+    <div class="table-card">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">Daftar Pesan Keluar</h5>
+          <small class="text-muted">Data pesan yang telah dikirim</small>
+        </div>
+        <div class="d-flex align-items-center">
+          <small class="text-muted me-3">Filter Waktu:</small>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" id="filterToday">Data Hari Ini</button>
+            <button type="button" class="btn btn-outline-primary active" id="filterMonth">Data Bulan Ini</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tableLoading" class="text-center my-4 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Memuat data...</p>
+      </div>
+
+      <div class="p-3 table-responsive">
+        <table id="messageTable" class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Nomor Tujuan</th>
+              <th>Pesan</th>
+              <th>Status</th>
+              <th>Waktu Kirim</th>
+            </tr>
+          </thead>
+          <tbody id="messageTableBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+
+        <div id="emptyTableMessage" class="text-center my-4 d-none">
+          <p class="text-muted">Tidak ada data pesan keluar untuk ditampilkan.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center text-muted mt-4" style="font-size:13px;">
+      Data diperbarui otomatis setiap 60 detik
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentMessages = [];
+    let currentFilter = 'all'; // 'all', 'success', 'pending', 'failed'
+    let currentTimeFilter = 'month'; // 'today', 'month'
+    let autoRefreshInterval;
+
+    // DOM elements
+    const tableLoading = document.getElementById('tableLoading');
+
+    // Status mappings for filtering
+    const STATUS_MAPPINGS = {
+      success: ['sent', 'success', 'sukses', 'delivered', 'read', 'terkirim', 'berhasil'],
+      pending: ['pending', 'sending', 'queued', 'processing', 'menunggu', 'sedang dikirim', 'dalam antrian'],
+      failed: ['failed', 'error', 'gagal', 'undelivered', 'rejected', 'timeout', 'invalid', 'blocked']
+    };
+
+    // Initialize the page
+    async function init() {
+      await loadData();
+      setActiveFilter('all');
+      startAutoRefresh();
+    }
+
+    // Load both stats and messages
+    async function loadData() {
+      await Promise.all([fetchMessageStats(), fetchMessages()]);
+    }
+
+    // Fetch message statistics from API
+    async function fetchMessageStats() {
+      try {
+        const response = await fetch('/api/message_stats');
+        if (!response.ok) throw new Error('Failed to fetch stats');
+
+        const data = await response.json();
+        updateStatsDisplay(data);
+      } catch (error) {
+        console.error('Error fetching message stats:', error);
+        // Reset stats on error
+        updateStatsDisplay({ success: 0, pending: 0, failed: 0 });
+      }
+    }
+
+    // Update statistics display
+    function updateStatsDisplay(data) {
+      const successCount = data.success || 0;
+      const pendingCount = data.pending || 0;
+      const failedCount = data.failed || 0;
+      const totalCount = successCount + pendingCount + failedCount;
+
+      document.getElementById('totalCount').innerText = totalCount;
+      document.getElementById('successCount').innerText = successCount;
+      document.getElementById('pendingCount').innerText = pendingCount;
+      document.getElementById('failedCount').innerText = failedCount;
+    }
+
+    // Fetch messages from API
+    async function fetchMessages() {
+      try {
+        tableLoading.classList.remove('d-none');
+        const response = await fetch('/api/sent_messages');
+
+        if (!response.ok) throw new Error('Failed to fetch messages');
+
+        currentMessages = await response.json();
+        renderTable();
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        currentMessages = [];
+        renderTable();
+      } finally {
+        tableLoading.classList.add('d-none');
+      }
+    }
+
+    // Render the messages table
+    function renderTable() {
+      const tbody = document.getElementById('messageTableBody');
+      tbody.innerHTML = '';
+
+      const filteredMessages = currentMessages.filter(msg =>
+        matchesStatusFilter(msg.status, currentFilter) &&
+        matchesTimeFilter(msg.timestamp, currentTimeFilter)
+      );
+
+      if (filteredMessages.length === 0) {
+        document.getElementById('emptyTableMessage').classList.remove('d-none');
+        return;
+      }
+
+      document.getElementById('emptyTableMessage').classList.add('d-none');
+
+      filteredMessages.forEach(msg => {
+        const row = createMessageRow(msg);
+        tbody.appendChild(row);
+      });
+    }
+
+    // Create a table row for a message
+    function createMessageRow(msg) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${msg.phone || '-'}</td>
+        <td>${msg.message || '-'}</td>
+        <td>${getStatusBadge(msg.status)}</td>
+        <td>${formatTimestamp(msg.timestamp)}</td>
+      `;
+      return tr;
+    }
+
+    // Format timestamp for display
+    function formatTimestamp(timestamp) {
+      if (!timestamp) return '-';
+      try {
+        return new Date(timestamp).toLocaleString('id-ID');
+      } catch {
+        return '-';
+      }
+    }
+
+    // Get status badge HTML
+    function getStatusBadge(status) {
+      if (!status) return '<span class="badge-status badge-secondary">Unknown</span>';
+
+      const statusLower = status.toLowerCase();
+
+      if (STATUS_MAPPINGS.success.some(s => statusLower.includes(s))) {
+        return '<span class="badge-status badge-success">Sukses</span>';
+      }
+      if (STATUS_MAPPINGS.pending.some(s => statusLower.includes(s))) {
+        return '<span class="badge-status badge-warning">Pending</span>';
+      }
+      if (STATUS_MAPPINGS.failed.some(s => statusLower.includes(s))) {
+        return '<span class="badge-status badge-danger">Gagal</span>';
+      }
+
+      return `<span class="badge-status badge-secondary">${status}</span>`;
+    }
+
+    // Check if message matches status filter
+    function matchesStatusFilter(status, filter) {
+      if (filter === 'all') return true;
+      if (!status) return false;
+
+      const statusLower = status.toLowerCase();
+      return STATUS_MAPPINGS[filter]?.some(s => statusLower.includes(s)) || false;
+    }
+
+    // Check if message matches time filter
+    function matchesTimeFilter(timestamp, timeFilter) {
+      if (!timestamp) return true;
+
+      const messageDate = new Date(timestamp);
+      const now = new Date();
+
+      if (timeFilter === 'today') {
+        return messageDate.toDateString() === now.toDateString();
+      }
+
+      if (timeFilter === 'month') {
+        return messageDate.getMonth() === now.getMonth() &&
+               messageDate.getFullYear() === now.getFullYear();
+      }
+
+      return true;
+    }
+
+    // Set active status filter
+    function setActiveFilter(filterType) {
+      currentFilter = filterType;
+
+      // Update UI
+      document.querySelectorAll('.filter-card').forEach(card => {
+        card.classList.toggle('active', card.getAttribute('data-filter') === filterType);
+      });
+
+      renderTable();
+    }
+
+    // Set time filter
+    function setTimeFilter(timeFilter) {
+      currentTimeFilter = timeFilter;
+
+      // Update button states
+      document.getElementById('filterToday').classList.toggle('active', timeFilter === 'today');
+      document.getElementById('filterMonth').classList.toggle('active', timeFilter === 'month');
+
+      renderTable();
+    }
+
+    // Clear all messages
+    async function clearHistory() {
+      const result = await Swal.fire({
+        title: 'Yakin bersihkan semua riwayat?',
+        text: 'Semua data pesan keluar akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Ya, bersihkan',
+        cancelButtonText: 'Batal'
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const response = await fetch('/api/sent_messages', { method: 'DELETE' });
+
+        if (!response.ok) throw new Error('Gagal menghapus data dari server');
+
+        // Reset data
+        currentMessages = [];
+        currentFilter = 'all';
+        currentTimeFilter = 'month';
+
+        updateStatsDisplay({ success: 0, pending: 0, failed: 0 });
+        renderTable();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Riwayat berhasil dibersihkan',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        console.error('Error clearing history:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal membersihkan riwayat',
+          text: error.message
+        });
+      }
+    }
+
+    // Refresh data manually
+    async function refreshData() {
+      Swal.fire({
+        title: 'Refreshing Data...',
+        text: 'Sedang memuat ulang data pesan keluar',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        await loadData();
+        Swal.fire({
+          icon: 'success',
+          title: 'Data Berhasil Di-refresh',
+          text: 'Pesan keluar telah diperbarui dengan data terbaru',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      } catch (error) {
+        console.error('Refresh error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Refresh Data',
+          text: 'Terjadi kesalahan saat memuat ulang data',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
+    }
+
+    // Start auto-refresh
+    function startAutoRefresh() {
+      autoRefreshInterval = setInterval(loadData, 60000); // 60 seconds
+    }
+
+    // Stop auto-refresh
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+    }
+
+    // Export table data to Excel
+    function exportToExcel() {
+      const filteredMessages = currentMessages.filter(msg =>
+        matchesStatusFilter(msg.status, currentFilter) &&
+        matchesTimeFilter(msg.timestamp, currentTimeFilter)
+      );
+
+      if (filteredMessages.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Tidak ada data untuk diekspor',
+          text: 'Pastikan ada data yang sesuai dengan filter yang dipilih.'
+        });
+        return;
+      }
+
+      // Prepare data for export
+      const exportData = filteredMessages.map(msg => ({
+        'Nomor Tujuan': msg.phone || '-',
+        'Pesan': msg.message || '-',
+        'Status': getStatusText(msg.status),
+        'Waktu Kirim': formatTimestamp(msg.timestamp)
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Auto-size columns
+      const colWidths = [
+        { wch: 15 }, // Nomor Tujuan
+        { wch: 50 }, // Pesan
+        { wch: 10 }, // Status
+        { wch: 20 }  // Waktu Kirim
+      ];
+      ws['!cols'] = colWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Pesan Keluar');
+
+      // Generate filename with current date
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const filename = `pesan_keluar_${dateStr}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Export Berhasil',
+        text: `Data berhasil diekspor ke ${filename}`,
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+
+    // Get plain text status for export
+    function getStatusText(status) {
+      if (!status) return 'Unknown';
+
+      const statusLower = status.toLowerCase();
+
+      if (STATUS_MAPPINGS.success.some(s => statusLower.includes(s))) {
+        return 'Sukses';
+      }
+      if (STATUS_MAPPINGS.pending.some(s => statusLower.includes(s))) {
+        return 'Pending';
+      }
+      if (STATUS_MAPPINGS.failed.some(s => statusLower.includes(s))) {
+        return 'Gagal';
+      }
+
+      return status;
+    }
+
+    // Event listeners
+    document.getElementById('btnExport').addEventListener('click', exportToExcel);
+    document.getElementById('btnClear').addEventListener('click', clearHistory);
+    document.getElementById('btnRefresh').addEventListener('click', refreshData);
+    document.getElementById('btnBack').addEventListener('click', () => {
+      window.location.href = '/dashboard';
+    });
+
+    document.querySelectorAll('.filter-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const filterType = card.getAttribute('data-filter');
+        setActiveFilter(filterType);
+      });
+    });
+
+    document.getElementById('filterToday').addEventListener('click', () => setTimeFilter('today'));
+    document.getElementById('filterMonth').addEventListener('click', () => setTimeFilter('month'));
+
+    // Initialize on page load
+    init();
+  </script>
+</body>
+</html>
