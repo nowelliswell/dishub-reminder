@@ -101,7 +101,9 @@ def classify_by_days(days_until):
         return "H (today)", "danger"  # Merah
     elif days_until == 1:
         return "H-1", "warning"        # Kuning
-    elif days_until >= 2:
+    elif days_until == 2:
+        return "H-2", "info"           # Biru
+    elif days_until > 2:
         return "H-3 or more", "success" # Hijau
     else:
         return "Expired", "secondary"  # Abu-abu
@@ -194,6 +196,58 @@ def run_now_check(as_of_date=None):
             })
             print(f"[{status_label}] Reminder sent to {r['name']} ({r['vehicle_number']}) → {send_result.get('status')}")
     return actions
+
+def send_automatic_reminders():
+    """
+    Send automatic reminders for H-1 and H-2 at 12:00 WIB noon.
+    This function checks the current time in WIB timezone and sends messages
+    only for reminders that are exactly 1 or 2 days before expiration.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    # Get current time in WIB (UTC+7)
+    wib_timezone = timezone(timedelta(hours=7))
+    current_time = datetime.now(wib_timezone)
+
+    # Check if it's exactly 12:00 WIB
+    if current_time.hour != 12 or current_time.minute != 0:
+        print("⏰ Not 12:00 WIB, skipping automatic reminders.")
+        return {"status": "skipped", "reason": "Not 12:00 WIB"}
+
+    today = current_time.date()
+    reminders = list_reminders()
+    sent_count = 0
+    failed_count = 0
+
+    for reminder in reminders:
+        test_date = datetime.strptime(reminder['test_date'], '%Y-%m-%d').date()
+        days_until = (test_date - today).days
+
+        # Only send for H-1 (days_until == 1) and H-2 (days_until == 2)
+        if days_until in [1, 2]:
+            status_label, _ = classify_by_days(days_until)
+            message = build_message(reminder, status_label)
+            phone = normalize_phone(reminder.get('phone') or "")
+
+            if not phone:
+                print(f"⚠️ No phone number for {reminder['name']}, skipping.")
+                continue
+
+            send_result = send_whatsapp_message(phone, message)
+
+            if send_result.get('status') == 'sent via Node API':
+                sent_count += 1
+                print(f"✅ [{status_label}] Automatic reminder sent to {reminder['name']} ({reminder['vehicle_number']})")
+            else:
+                failed_count += 1
+                print(f"❌ [{status_label}] Failed to send automatic reminder to {reminder['name']} ({reminder['vehicle_number']})")
+
+    return {
+        "status": "completed",
+        "sent_count": sent_count,
+        "failed_count": failed_count,
+        "timestamp": current_time.isoformat()
+    }
 
 # ----------------- ROUTES -----------------
 
@@ -473,8 +527,17 @@ def reset_auth():
 
 # ----------------- MAIN -----------------
 if __name__ == "__main__":
+    import threading
+    from scheduler.auto_send import main as scheduler_main
+
     init_db()
     print('Database initialized (reminders.db).')
+
+    # Start the automatic reminder scheduler in a separate thread
+    scheduler_thread = threading.Thread(target=scheduler_main, daemon=True)
+    scheduler_thread.start()
+    print('🚀 Automatic reminder scheduler started in background.')
+
     print('Available endpoints:')
     print('  POST /add')
     print('  GET  /list')
@@ -484,4 +547,8 @@ if __name__ == "__main__":
     print('  POST /reset-auth')
     print('  GET /api/stats')
     print('  GET /api/messages_timeseries?period=day|month')
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+    try:
+        app.run(host="0.0.0.0", port=5000, debug=True)
+    except KeyboardInterrupt:
+        print("\n🛑 Flask app stopped by user.")
