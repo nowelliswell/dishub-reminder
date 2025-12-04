@@ -200,8 +200,8 @@ def run_now_check(as_of_date=None):
 def send_automatic_reminders():
     """
     Send automatic reminders for H-1 and H-2 at 12:00 WIB noon.
-    This function checks the current time in WIB timezone and sends messages
-    only for reminders that are exactly 1 or 2 days before expiration.
+    This function is called by the scheduler and sends messages
+    for reminders that are exactly 1 or 2 days before expiration.
     """
     from datetime import datetime, timezone, timedelta
 
@@ -209,15 +209,14 @@ def send_automatic_reminders():
     wib_timezone = timezone(timedelta(hours=7))
     current_time = datetime.now(wib_timezone)
 
-    # Check if it's exactly 12:00 WIB
-    if current_time.hour != 12 or current_time.minute != 0:
-        print("⏰ Not 12:00 WIB, skipping automatic reminders.")
-        return {"status": "skipped", "reason": "Not 12:00 WIB"}
+    print(f"🕐 Current time (WIB): {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     today = current_time.date()
     reminders = list_reminders()
     sent_count = 0
     failed_count = 0
+
+    print(f"📋 Found {len(reminders)} total reminders in database")
 
     for reminder in reminders:
         test_date = datetime.strptime(reminder['test_date'], '%Y-%m-%d').date()
@@ -230,9 +229,10 @@ def send_automatic_reminders():
             phone = normalize_phone(reminder.get('phone') or "")
 
             if not phone:
-                print(f"⚠️ No phone number for {reminder['name']}, skipping.")
+                print(f"⚠️ [{status_label}] No phone number for {reminder['name']}, skipping.")
                 continue
 
+            print(f"📤 [{status_label}] Sending to {reminder['name']} ({reminder['vehicle_number']}) at {phone}")
             send_result = send_whatsapp_message(phone, message)
 
             if send_result.get('status') == 'sent via Node API':
@@ -241,6 +241,9 @@ def send_automatic_reminders():
             else:
                 failed_count += 1
                 print(f"❌ [{status_label}] Failed to send automatic reminder to {reminder['name']} ({reminder['vehicle_number']})")
+                print(f"   Error details: {send_result}")
+
+    print(f"📊 Summary: {sent_count} sent, {failed_count} failed")
 
     return {
         "status": "completed",
