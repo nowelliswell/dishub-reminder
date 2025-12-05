@@ -5,7 +5,6 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-lightgrey.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 **Sistem Pengingat Otomatis Uji Kendaraan Bermotor**
 
