@@ -52,6 +52,36 @@ def init_db():
             meta TEXT,
             created_at TEXT NOT NULL
         )''')
+        con.execute('''CREATE TABLE IF NOT EXISTS chat_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            template_name TEXT NOT NULL,
+            template_content TEXT NOT NULL,
+            is_active INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )''')
+        
+        # Insert default template if not exists
+        count = con.execute("SELECT COUNT(*) FROM chat_templates").fetchone()[0]
+        if count == 0:
+            default_template = """🚗 Halo Sdr/i {nama} (sesuai STNK) 
+
+📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {nomor_kendaraan} 
+🔢 Nomor Uji : {no_uji} 
+🚛 Jenis Kendaraan : {jenis_kendaraan} 
+📆 Tanggal Uji Kendaraan: {tanggal_uji}
+
+⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.
+✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan. 
+🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan
+⏰ Harap hadir sesuai jadwal 
+
+🙏 Terima Kasih - Dishub Kota Surakarta"""
+            now = datetime.utcnow().isoformat()
+            con.execute(
+                "INSERT INTO chat_templates (template_name, template_content, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                ("Default Template", default_template, 1, now, now)
+            )
 
 # ----------------- HELPERS -----------------
 def add_reminder(name, nik, vehicle_number, test_date, phone=None):
@@ -124,6 +154,48 @@ def normalize_phone(phone: str) -> str:
         return "62" + phone
     return phone
 
+def get_active_template():
+    """Get active chat template from database"""
+    try:
+        with get_db_connection() as con:
+            row = con.execute("SELECT template_content FROM chat_templates WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 1").fetchone()
+            if row:
+                return row['template_content']
+    except Exception as e:
+        print(f"❌ Error getting template: {e}")
+    
+    # Fallback to default if no template found
+    return """🚗 Halo Sdr/i {nama} (sesuai STNK) 
+
+📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {nomor_kendaraan} 
+🔢 Nomor Uji : {no_uji} 
+🚛 Jenis Kendaraan : {jenis_kendaraan} 
+📆 Tanggal Uji Kendaraan: {tanggal_uji}
+
+⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.
+✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan. 
+🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan
+⏰ Harap hadir sesuai jadwal 
+
+🙏 Terima Kasih - Dishub Kota Surakarta"""
+
+def save_template(template_content, template_name="Custom Template"):
+    """Save chat template to database"""
+    try:
+        with get_db_connection() as con:
+            now = datetime.utcnow().isoformat()
+            # Deactivate all templates
+            con.execute("UPDATE chat_templates SET is_active = 0")
+            # Insert new active template
+            con.execute(
+                "INSERT INTO chat_templates (template_name, template_content, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (template_name, template_content, 1, now, now)
+            )
+            return True
+    except Exception as e:
+        print(f"❌ Error saving template: {e}")
+        return False
+
 def log_message(direction, phone, message_text, status="unknown", meta=None):
     try:
         with get_db_connection() as con:
@@ -135,18 +207,17 @@ def log_message(direction, phone, message_text, status="unknown", meta=None):
         print("❌ Gagal log message:", e)
 
 def build_message(record, status_label):
-    return (
-        f"🚗 Halo Sdr/i {record['name']} (sesuai STNK) \n\n"
-        f"📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {record['vehicle_number']} \n"
-        f"🔢 Nomor Uji : {record['no_uji']} \n"
-        f"🚛 Jenis Kendaraan : {record['jenis_kendaraan']} \n"
-        f"📆 Tanggal Uji Kendaraan: {record['test_date']}\n\n"
-        f"⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n"
-        f"✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan. \n"
-        f"🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n"
-        f"⏰ Harap hadir sesuai jadwal \n\n"
-        f"🙏 Terima Kasih - Dishub Kota Surakarta\n"
-    )
+    """Build message from template with variable replacement"""
+    template = get_active_template()
+    
+    # Replace variables in template
+    message = template.replace("{nama}", str(record.get('name', '')))
+    message = message.replace("{nomor_kendaraan}", str(record.get('vehicle_number', '')))
+    message = message.replace("{no_uji}", str(record.get('no_uji', '')))
+    message = message.replace("{jenis_kendaraan}", str(record.get('jenis_kendaraan', '')))
+    message = message.replace("{tanggal_uji}", str(record.get('test_date', '')))
+    
+    return message
 
 def send_whatsapp_message(phone, message_text):
     """Kirim ke Node API. Return dict berisi status dan info. Juga log ke DB messages."""
@@ -373,6 +444,55 @@ def dashboard():
 @app.route('/pesankeluar', methods=['GET'])
 def pesankeluar():
     return render_template('pesankeluar.html')
+
+@app.route('/edit_chat', methods=['GET'])
+def edit_chat():
+    return render_template('edit_chat.html')
+
+# ----------------- CHAT TEMPLATE endpoints -----------------
+@app.route('/api/template', methods=['GET'])
+def get_template():
+    """Get active chat template"""
+    template = get_active_template()
+    return jsonify({"template": template, "status": "ok"})
+
+@app.route('/api/template', methods=['POST'])
+def save_template_api():
+    """Save chat template"""
+    data = request.get_json(force=True)
+    template_content = data.get('template')
+    template_name = data.get('name', 'Custom Template')
+    
+    if not template_content:
+        return jsonify({"status": "error", "message": "Template content is required"}), 400
+    
+    success = save_template(template_content, template_name)
+    
+    if success:
+        return jsonify({"status": "ok", "message": "Template saved successfully"})
+    else:
+        return jsonify({"status": "error", "message": "Failed to save template"}), 500
+
+@app.route('/api/template/history', methods=['GET'])
+def get_template_history():
+    """Get template history"""
+    try:
+        with get_db_connection() as con:
+            rows = con.execute(
+                "SELECT id, template_name, is_active, created_at, updated_at FROM chat_templates ORDER BY updated_at DESC LIMIT 10"
+            ).fetchall()
+            templates = []
+            for row in rows:
+                templates.append({
+                    "id": row['id'],
+                    "name": row['template_name'],
+                    "is_active": bool(row['is_active']),
+                    "created_at": row['created_at'],
+                    "updated_at": row['updated_at']
+                })
+            return jsonify({"templates": templates, "status": "ok"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # ----------------- STAT endpoints -----------------
 @app.route('/api/stats', methods=['GET'])
