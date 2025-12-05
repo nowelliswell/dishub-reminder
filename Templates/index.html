@@ -71,6 +71,25 @@
     /* Icon sizing inside primary buttons */
     .btn-primary-custom .bi { font-size:18px; }
 
+    /* Modern button base style (matching dashboard.html) */
+    .btn-modern {
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .btn-modern:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-refresh {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border: none;
+      color: white;
+    }
+
     /* Secondary / other action buttons */
     .btn-play {
       height: var(--btn-height);
@@ -180,8 +199,13 @@
     /* Micro responsive tweaks */
     @media(max-width:900px){
       .header-wrap { flex-direction:column; align-items:flex-start; gap:12px; }
+      .header-wrap .d-flex { width:100%; flex-wrap:wrap; }
       .btn-primary-custom { width:100%; min-width:0; justify-content:center; }
-      .top-refresh { width:100%; }
+      .btn-modern { flex:1; min-width:120px; }
+    }
+    @media(max-width:576px){
+      .header-wrap .d-flex { flex-direction:column; }
+      .btn-modern { width:100%; }
     }
   </style>
 </head>
@@ -194,11 +218,9 @@
         <div class="header-sub">Dinas Perhubungan - Monitoring & Management</div>
       </div>
 
-      <!-- NOTE: Refresh uses the same primary button style as Save -->
-      <div>
-        <button id="btnRefreshTop" class="btn-primary-custom" title="Refresh data">
-          <i class="bi bi-arrow-repeat"></i>
-          <span>Refresh</span>
+      <div class="d-flex gap-2">
+        <button id="btnRefreshTop" class="btn btn-modern btn-refresh">
+          <i class="bi bi-arrow-clockwise me-2"></i>Refresh
         </button>
       </div>
     </div>
@@ -248,17 +270,16 @@
            <div class="col-md-6">
             <label class="form-label">No. WhatsApp</label>
             <div class="input-group has-validation">
-              <input type="text" class="form-control" id="phoneInput" name="phone" placeholder="812xxxxxx" pattern="^[0-9]{9,13}$">
-              <div class="invalid-feedback">Format nomor WhatsApp tidak valid (contoh: 81234567890)</div>
+              <input type="text" class="form-control" id="phoneInput" name="phone" placeholder="812xxxxxx" pattern="^[0-9]{9,13}$" required>
+              <div class="invalid-feedback" id="phoneFeedback">Nomor WhatsApp harus diisi</div>
             </div>
             <small style="color:var(--muted);">Format: 812xxxxxxx (tanpa awalan 0)</small>
           </div>
         </div>
 
         <div class="mt-4">
-          <!-- Save uses same primary look as refresh -->
-          <button id="submitBtn" type="submit" class="btn-primary-custom">
-            <i class="bi bi-save"></i>
+          <button id="submitBtn" type="submit" class="btn btn-success btn-modern">
+            <i class="bi bi-save me-2"></i>
             <span id="submitText">Simpan Reminder</span>
             <span id="submitSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
           </button>
@@ -486,8 +507,14 @@
             <td>${escapeHtml(r.phone||'-')}</td>
             <td><span class="badge-status ${badgeClass(r.status)}">${escapeHtml(r.status||'-')}</span></td>
             <td>
-              <button class="btn btn-sm btn-primary me-1 send-one" data-id="${r.id}">📤 Kirim</button>
-              <button class="btn btn-sm btn-outline-danger delete-one" data-id="${r.id}">🗑️</button>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-success send-one" data-id="${r.id}" title="Kirim Pesan">
+                  <i class="bi bi-send-fill"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-one" data-id="${r.id}" title="Hapus">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </td>
           `;
           reminderTableBody.appendChild(tr);
@@ -501,10 +528,29 @@
       function validateEl(el){
         if(!el) return true;
         const v = (el.value||'').toString().trim();
-        if(el.required && !v){ el.classList.add('is-invalid'); el.classList.remove('is-valid'); return false; }
-        if(el.name==='phone' && v){
-          if(!/^[0-9]{9,13}$/.test(v)){ el.classList.add('is-invalid'); el.classList.remove('is-valid'); return false; }
+        
+        // Special handling for phone input
+        if(el.name==='phone'){
+          const phoneFeedback = document.getElementById('phoneFeedback');
+          if(el.required && !v){
+            el.classList.add('is-invalid');
+            el.classList.remove('is-valid');
+            if(phoneFeedback) phoneFeedback.textContent = 'Nomor WhatsApp harus diisi';
+            return false;
+          }
+          if(v && !/^[0-9]{9,13}$/.test(v)){
+            el.classList.add('is-invalid');
+            el.classList.remove('is-valid');
+            if(phoneFeedback) phoneFeedback.textContent = 'Format nomor WhatsApp tidak valid (contoh: 81234567890)';
+            return false;
+          }
+          el.classList.remove('is-invalid');
+          el.classList.add('is-valid');
+          return true;
         }
+        
+        // Standard validation for other fields
+        if(el.required && !v){ el.classList.add('is-invalid'); el.classList.remove('is-valid'); return false; }
         el.classList.remove('is-invalid'); el.classList.add('is-valid'); return true;
       }
 
@@ -527,7 +573,7 @@
           submitText.textContent = 'Menyimpan...';
           const res = await fetchJSON(`${API_BASE}/add`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
           if(res.ok){
-            showToast('✅ Reminder berhasil ditambahkan!', 'success');
+            showToast('Reminder berhasil ditambahkan!', 'success');
             reminderForm.reset();
             $$('.form-control').forEach(i=>i.classList.remove('is-valid','is-invalid'));
             await loadReminders();
