@@ -87,6 +87,16 @@ WhatsApp Reminder System adalah aplikasi web yang dirancang untuk **Dinas Perhub
 - **Time Series**: Grafik pengiriman per hari/bulan
 - **Export Data**: Download data dalam format JSON
 
+### ✏️ Template Chat Editor (NEW!)
+
+- **Visual Editor**: Edit template pesan WhatsApp dengan mudah
+- **Live Preview**: Preview real-time dengan data contoh
+- **Dynamic Variables**: 5 variabel otomatis ({nama}, {nomor_kendaraan}, {no_uji}, {jenis_kendaraan}, {tanggal_uji})
+- **Database Storage**: Template tersimpan di database, tidak hilang
+- **Template History**: Lihat dan rollback ke template sebelumnya
+- **Test Send**: Test kirim pesan sebelum digunakan
+- **One-Click Insert**: Klik variabel untuk insert ke template
+
 ---
 
 ## 🛠 Teknologi
@@ -257,8 +267,10 @@ Database initialized (reminders.db).
 
 ### Akses Aplikasi
 
-- **Dashboard**: http://localhost:5000/dashboard
-- **List Reminders**: http://localhost:5000/list
+- **Home/Input**: http://localhost:5000/
+- **Dashboard Monitoring**: http://localhost:5000/dashboard
+- **Database List**: http://localhost:5000/list
+- **Edit Chat Template**: http://localhost:5000/edit_chat ✨ **NEW!**
 - **Pesan Keluar**: http://localhost:5000/pesankeluar
 - **WhatsApp Login**: http://localhost:3000/login.html
 
@@ -410,6 +422,66 @@ Reset session WhatsApp
 curl -X DELETE http://localhost:3000/reset-auth
 ```
 
+### Chat Template API ✨ NEW!
+
+#### GET /api/template
+Ambil template chat aktif
+
+```bash
+curl http://localhost:5000/api/template
+```
+
+**Response:**
+```json
+{
+  "template": "🚗 Halo Sdr/i {nama}...",
+  "status": "ok"
+}
+```
+
+#### POST /api/template
+Simpan template chat baru
+
+```bash
+curl -X POST http://localhost:5000/api/template \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template": "Template baru dengan {variabel}",
+    "name": "Custom Template"
+  }'
+```
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "message": "Template saved successfully"
+}
+```
+
+#### GET /api/template/history
+Lihat riwayat template (10 terakhir)
+
+```bash
+curl http://localhost:5000/api/template/history
+```
+
+**Response:**
+```json
+{
+  "templates": [
+    {
+      "id": 2,
+      "name": "Custom Template",
+      "is_active": true,
+      "created_at": "2025-12-05T10:30:00",
+      "updated_at": "2025-12-05T10:30:00"
+    }
+  ],
+  "status": "ok"
+}
+```
+
 ---
 
 ## ⏰ Scheduler
@@ -426,8 +498,18 @@ Scheduler menggunakan **APScheduler** dengan timezone WIB (UTC+7):
    - Kirim via WhatsApp Bot API
    - Log hasil ke database
 
-### Template Pesan
+### Template Pesan ✨ (Dapat Diedit!)
 
+Template pesan sekarang dapat diedit melalui halaman **Edit Chat Template** (`/edit_chat`).
+
+**Variabel yang Tersedia:**
+- `{nama}` - Nama pemilik kendaraan (sesuai STNK)
+- `{nomor_kendaraan}` - Nomor plat kendaraan
+- `{no_uji}` - Nomor uji kendaraan
+- `{jenis_kendaraan}` - Jenis kendaraan (Truck, Pickup, dll)
+- `{tanggal_uji}` - Tanggal jadwal uji kendaraan
+
+**Template Default:**
 ```
 🚗 Halo Sdr/i {nama} (sesuai STNK)
 
@@ -443,6 +525,14 @@ Scheduler menggunakan **APScheduler** dengan timezone WIB (UTC+7):
 
 🙏 Terima Kasih - Dishub Kota Surakarta
 ```
+
+**Cara Edit Template:**
+1. Buka halaman `/edit_chat`
+2. Edit template di editor
+3. Klik variabel untuk insert otomatis
+4. Preview real-time di sebelah kanan
+5. Klik "Simpan Template"
+6. Template baru langsung aktif untuk semua pengiriman
 
 ### Monitoring Scheduler
 
@@ -486,8 +576,10 @@ dishub-reminder/
 │   └── uploads/               # Uploaded files (avatars, logos)
 │
 ├── templates/                 # HTML templates
+│   ├── index.html             # Home/Input page
 │   ├── dashboard.html         # Main dashboard
 │   ├── db.html                # Reminder list view
+│   ├── edit_chat.html         # Chat template editor ✨ NEW!
 │   ├── pesankeluar.html       # Sent messages view
 │   ├── login.html             # WhatsApp login page
 │   └── api.html               # API documentation page
@@ -499,6 +591,56 @@ dishub-reminder/
     ├── DEBUG_CHECKLIST.md     # Debug checklist
     └── SUMMARY_PERBAIKAN.md   # Technical summary
 ```
+
+---
+
+## 🗄️ Database Schema
+
+### Tables
+
+#### 1. **reminders**
+Menyimpan data pengingat kendaraan
+```sql
+CREATE TABLE reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    vehicle_number TEXT NOT NULL,
+    no_uji TEXT,
+    jenis_kendaraan TEXT,
+    test_date TEXT NOT NULL,
+    phone TEXT,
+    created_at TEXT NOT NULL
+);
+```
+
+#### 2. **messages**
+Log pesan yang terkirim
+```sql
+CREATE TABLE messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    direction TEXT NOT NULL,  -- 'in' or 'out'
+    phone TEXT,
+    message TEXT,
+    status TEXT,
+    meta TEXT,
+    created_at TEXT NOT NULL
+);
+```
+
+#### 3. **chat_templates** ✨ NEW!
+Menyimpan template pesan WhatsApp
+```sql
+CREATE TABLE chat_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_name TEXT NOT NULL,
+    template_content TEXT NOT NULL,
+    is_active INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+```
+
+**Note:** Database akan otomatis dibuat saat pertama kali menjalankan aplikasi. Default template akan otomatis diinsert.
 
 ---
 

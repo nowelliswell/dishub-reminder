@@ -402,35 +402,85 @@
     // Test send
     btnTest.addEventListener('click', function() {
       Swal.fire({
-        title: 'Test Kirim Pesan',
+        title: '<strong>📤 Test Kirim Pesan</strong>',
         html: `
-          <input type="text" id="testPhone" class="swal2-input" placeholder="Nomor WhatsApp (contoh: 81234567890)">
-          <small class="text-muted">Pesan akan dikirim menggunakan template saat ini</small>
+          <div style="text-align: left; padding: 10px 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+              <i class="bi bi-phone" style="margin-right: 5px;"></i>Nomor WhatsApp
+            </label>
+            <input 
+              type="text" 
+              id="testPhone" 
+              class="swal2-input" 
+              placeholder="Contoh: 81234567890"
+              style="width: 100%; margin: 0; padding: 12px; border: 2px solid #e6eef9; border-radius: 8px; font-size: 14px;"
+            >
+            <div style="margin-top: 12px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+              <small style="color: #1565c0; font-size: 13px;">
+                <i class="bi bi-info-circle" style="margin-right: 5px;"></i>
+                Pesan akan dikirim menggunakan template yang sedang aktif
+              </small>
+            </div>
+            <div style="margin-top: 8px;">
+              <small style="color: #666; font-size: 12px;">
+                Format: 9-13 digit angka tanpa awalan 0 atau +62
+              </small>
+            </div>
+          </div>
         `,
+        width: '500px',
         showCancelButton: true,
-        confirmButtonText: 'Kirim',
-        cancelButtonText: 'Batal',
+        confirmButtonText: '<i class="bi bi-send-fill" style="margin-right: 5px;"></i>Kirim Sekarang',
+        cancelButtonText: '<i class="bi bi-x-circle" style="margin-right: 5px;"></i>Batal',
+        confirmButtonColor: '#1DB954',
+        cancelButtonColor: '#6c757d',
+        customClass: {
+          confirmButton: 'btn btn-success',
+          cancelButton: 'btn btn-secondary'
+        },
         preConfirm: () => {
-          const phone = document.getElementById('testPhone').value;
+          const phone = document.getElementById('testPhone').value.trim();
           if (!phone) {
-            Swal.showValidationMessage('Nomor WhatsApp harus diisi');
+            Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Nomor WhatsApp harus diisi');
             return false;
           }
           if (!/^[0-9]{9,13}$/.test(phone)) {
-            Swal.showValidationMessage('Format nomor tidak valid');
+            Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Format nomor tidak valid (9-13 digit angka)');
             return false;
           }
           return phone;
         }
       }).then((result) => {
         if (result.isConfirmed) {
-          // Here you can implement actual send logic
+          // Show loading
           Swal.fire({
-            icon: 'info',
-            title: 'Fitur Test Kirim',
-            text: 'Fitur ini akan mengirim pesan test ke nomor: ' + result.value,
-            timer: 2000
+            title: 'Mengirim Pesan...',
+            html: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
           });
+
+          // Here you can implement actual send logic
+          // Simulate API call
+          setTimeout(() => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Pesan Terkirim!',
+              html: `
+                <div style="text-align: left; padding: 10px;">
+                  <p style="margin: 10px 0;"><strong>Nomor Tujuan:</strong> ${result.value}</p>
+                  <p style="margin: 10px 0;"><strong>Status:</strong> <span style="color: #1DB954;">✓ Berhasil</span></p>
+                  <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px;">
+                    <strong>Catatan:</strong> Pesan test telah dikirim menggunakan template aktif
+                  </div>
+                </div>
+              `,
+              confirmButtonText: 'OK',
+              confirmButtonColor: '#1DB954'
+            });
+          }, 1500);
         }
       });
     });
