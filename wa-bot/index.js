@@ -46,31 +46,39 @@ async function connectToWhatsApp() {
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
-    if (qr) currentQR = qr;
+    if (qr) {
+      currentQR = qr;
+      console.log("📱 New QR code generated");
+    }
 
     if (connection === "close") {
       console.log("Connection closed. lastDisconnect:", lastDisconnect);
+      isConnected = false;
+      
       // Handle conflict by stopping reconnection
       if (lastDisconnect?.error?.message?.includes('conflict') || lastDisconnect?.error?.output?.payload?.content?.[0]?.tag === 'conflict') {
         console.log("Session conflict detected. Another WhatsApp session is active. Please log out from other devices or close the official WhatsApp app, then restart this bot.");
-        isConnected = false;
         return; // Stop reconnection
       }
 
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
 
       if (reason === DisconnectReason.loggedOut) {
+        console.log("🔓 Logged out, removing auth and reconnecting...");
         await fs.remove(AUTH_FOLDER);
+        currentQR = null;
         return connectToWhatsApp();
       }
 
+      // Reconnect for other disconnection reasons
+      console.log("🔄 Reconnecting...");
       connectToWhatsApp();
     }
 
     if (connection === "open") {
       isConnected = true;
       currentQR = null;
-      console.log("WhatsApp Connected.");
+      console.log("✅ WhatsApp Connected.");
     }
   });
 }
@@ -80,8 +88,13 @@ connectToWhatsApp();
 
 // === API: Get QR ===
 app.get("/qr", (req, res) => {
-  if (currentQR) return res.json({ qr: currentQR });
-  return res.json({ message: "No QR yet or already connected", connected: isConnected });
+  if (currentQR) {
+    return res.json({ success: true, qr: currentQR, connected: false });
+  }
+  if (isConnected) {
+    return res.json({ success: false, message: "Already connected to WhatsApp", connected: true });
+  }
+  return res.json({ success: false, message: "Waiting for QR code...", connected: false });
 });
 
 // === API: Send Message ===
@@ -117,9 +130,35 @@ app.post("/send", async (req, res) => {
 // === API: Reset Auth ===
 app.delete("/reset-auth", async (req, res) => {
   try {
+    console.log("🔄 Resetting auth...");
+    
+    // Hapus auth folder
     await fs.remove(AUTH_FOLDER);
-    res.json({ message: "Auth reset successfully" });
+    console.log("✅ Auth folder removed");
+    
+    // Reset state
+    isConnected = false;
+    currentQR = null;
+    
+    // Logout dari socket jika masih terkoneksi
+    if (sock) {
+      try {
+        await sock.logout();
+        console.log("✅ Socket logged out");
+      } catch (err) {
+        console.log("⚠️ Socket logout error (might be already disconnected):", err.message);
+      }
+    }
+    
+    // Reconnect untuk generate QR baru
+    setTimeout(() => {
+      console.log("🔄 Reconnecting to generate new QR...");
+      connectToWhatsApp();
+    }, 1000);
+    
+    res.json({ message: "Auth reset successfully, generating new QR..." });
   } catch (err) {
+    console.error("❌ Reset auth error:", err);
     res.status(500).json({ error: err.message });
   }
 });

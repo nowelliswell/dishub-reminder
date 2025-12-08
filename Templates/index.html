@@ -647,18 +647,73 @@
 
       /* Reset auth (WA) */
       async function resetAuth(){
-        const c = await Swal.fire({ title:'Reset Login WhatsApp?', text:'Aksi ini akan menghapus sesi login WhatsApp. Lanjutkan?', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, reset', cancelButtonText:'Batal' });
-        if(!c.isConfirmed) return;
+        const result = await Swal.fire({
+          title: '⚠️ Reset Login WhatsApp?',
+          html: `
+            <div style="text-align: left; padding: 10px;">
+              <p><strong>Tindakan ini akan:</strong></p>
+              <ul style="margin-left: 20px;">
+                <li>Menghapus sesi login WhatsApp yang aktif</li>
+                <li>Memerlukan scan QR code baru</li>
+                <li>Bot akan disconnect sementara</li>
+              </ul>
+              <p style="margin-top: 15px; color: #f59e0b;">
+                <i class="bi bi-exclamation-triangle-fill"></i> 
+                Pastikan Anda siap untuk scan QR code baru!
+              </p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#f59e0b',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: '<i class="bi bi-arrow-clockwise me-2"></i>Ya, Reset Sekarang',
+          cancelButtonText: 'Batal',
+          reverseButtons: true
+        });
+
+        if(!result.isConfirmed) return;
+
+        Swal.fire({
+          title: 'Mereset Login WhatsApp...',
+          text: 'Menghapus sesi dan mempersiapkan QR baru',
+          allowOutsideClick: false,
+          showConfirmButton: false,
+          didOpen: () => Swal.showLoading()
+        });
+
         try{
-          resetAuthBtn.disabled=true;
-          resetAuthBtn.innerHTML = '⏳ Resetting...';
-          const res = await fetchJSON(`${RESET_BASE}/reset-auth`, { method:'DELETE' });
-          if(res.ok){
-            Swal.fire("🔄 Reset", (res.data && res.data.message) ? res.data.message : 'Reset berhasil', "info").then(()=> { window.location.href = `${RESET_BASE}/login.html`; });
-          } else { Swal.fire("⚠️ Gagal", "Gagal reset auth.", "error"); console.warn('reset-auth failed', res); }
+          resetAuthBtn.disabled = true;
+          
+          // Hit Python backend yang akan forward ke Node.js
+          const response = await fetch(`${API_BASE}/reset-auth`, { method: 'POST' });
+          const data = await response.json();
+
+          if (data.status === 'ok') {
+            await Swal.fire({
+              icon: 'success',
+              title: 'Reset Berhasil!',
+              text: 'Anda akan diarahkan ke halaman login untuk scan QR baru',
+              timer: 2000,
+              showConfirmButton: false
+            });
+
+            // Redirect ke login page
+            window.location.href = `${RESET_BASE}/login.html`;
+          } else {
+            throw new Error(data.message || 'Gagal reset auth');
+          }
         }catch(err){
-          Swal.fire("⚠️ Error", "Gagal reset auth: " + (err.message||err), "error");
-        }finally{ resetAuthBtn.disabled=false; resetAuthBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Reset Login WA'; }
+          console.error('Reset WA error:', err);
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Reset Login',
+            text: err.message || 'Terjadi kesalahan saat mereset login WhatsApp',
+            confirmButtonText: 'OK'
+          });
+        }finally{
+          resetAuthBtn.disabled = false;
+        }
       }
 
       /* Logout */

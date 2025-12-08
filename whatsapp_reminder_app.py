@@ -18,8 +18,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
 # 🔑 Lokasi auth session WA (sesuaikan dengan Node.js)
-AUTH_FILE = "auth_info.json"   # kalau Node.js simpan JSON auth
-AUTH_DIR = "session"           # kalau Node.js pakai folder session
+AUTH_DIR = "wa-bot/auth_info"  # Folder auth yang digunakan Node.js
 
 UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -630,23 +629,25 @@ def upload_avatar():
 # ----------------- RESET AUTH WA -----------------
 @app.route("/reset-auth", methods=["POST"])
 def reset_auth():
-    """Hapus file atau folder auth agar QR baru bisa muncul."""
+    """Hapus folder auth agar QR baru bisa muncul. Redirect ke Node.js untuk reset."""
     try:
-        removed = []
-        if os.path.exists(AUTH_FILE):
-            os.remove(AUTH_FILE)
-            removed.append(AUTH_FILE)
-
-        if os.path.exists(AUTH_DIR):
-            shutil.rmtree(AUTH_DIR)
-            removed.append(AUTH_DIR)
-
-        if not removed:
-            return jsonify({"status": "ok", "message": "Tidak ada auth file untuk dihapus."})
-
-        return jsonify({"status": "ok", "message": f"Auth info dihapus: {', '.join(removed)}"})
+        # Hit Node.js API untuk reset auth
+        node_reset_url = "http://localhost:3000/reset-auth"
+        response = requests.delete(node_reset_url, timeout=5)
+        
+        if response.status_code == 200:
+            return jsonify({
+                "status": "ok", 
+                "message": "Auth berhasil direset. Silakan scan QR baru.",
+                "redirect": "/login.html"
+            })
+        else:
+            return jsonify({
+                "status": "error", 
+                "message": "Gagal reset auth di Node.js"
+            }), 500
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # ----------------- MAIN -----------------
 if __name__ == "__main__":
