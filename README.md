@@ -27,6 +27,8 @@ Aplikasi web untuk mengelola dan mengirim pengingat otomatis uji KIR kendaraan m
 - [API Endpoints](#-api-endpoints)
 - [Scheduler](#-scheduler)
 - [Struktur Project](#-struktur-project)
+- [Database Schema](#-database-schema)
+- [Database Tools](#-database-tools)
 - [Testing](#-testing)
 - [Troubleshooting](#-troubleshooting)
 - [Kontribusi](#-kontribusi)
@@ -563,6 +565,10 @@ dishub-reminder/
 ├── test_api.py                # API testing script
 ├── restart_services.bat       # Windows service restart script
 │
+├── show_db_simple.py          # Database structure analyzer (MySQL-style) ✨ NEW!
+├── show_db.bat                # Quick command untuk Windows ✨ NEW!
+├── useful_queries.sql         # Collection of 100+ useful SQL queries ✨ NEW!
+│
 ├── scheduler/
 │   └── auto_send.py           # Automatic reminder scheduler
 │
@@ -586,6 +592,8 @@ dishub-reminder/
 │
 └── docs/                      # Documentation
     ├── README.md              # This file
+    ├── DATABASE_STRUCTURE.md  # Database documentation ✨ NEW!
+    ├── QUICK_DB_REFERENCE.md  # Quick reference ✨ NEW!
     ├── QUICK_START.md         # Quick start guide
     ├── CARA_PERBAIKAN.md      # Troubleshooting guide (ID)
     ├── DEBUG_CHECKLIST.md     # Debug checklist
@@ -595,6 +603,22 @@ dishub-reminder/
 ---
 
 ## 🗄️ Database Schema
+
+### Lihat Struktur Database
+
+Untuk melihat struktur lengkap database termasuk semua tabel, primary key, dan relasi:
+
+```bash
+# Windows
+show_database.bat
+
+# Linux/Mac
+python show_db_simple.py
+```
+
+**Dokumentasi Lengkap:**
+- 📊 [DATABASE_STRUCTURE.md](DATABASE_STRUCTURE.md) - Dokumentasi lengkap struktur database
+- 🚀 [QUICK_DB_REFERENCE.md](QUICK_DB_REFERENCE.md) - Quick reference dan query berguna
 
 ### Tables
 
@@ -640,7 +664,186 @@ CREATE TABLE chat_templates (
 );
 ```
 
+**Penjelasan Sistem Chat Templates:**
+
+Tabel ini menyimpan template pesan WhatsApp yang dapat diedit oleh admin melalui halaman `/edit_chat`.
+
+**Kolom-kolom:**
+- `id` - Primary key, auto increment
+- `template_name` - Nama template untuk identifikasi (contoh: "Default Template", "Template H-1")
+- `template_content` - Isi template dengan variabel dinamis: `{nama}`, `{nomor_kendaraan}`, `{no_uji}`, `{jenis_kendaraan}`, `{tanggal_uji}`
+- `is_active` - Status aktif (1) atau nonaktif (0). Hanya 1 template yang boleh aktif
+- `created_at` - Timestamp pembuatan
+- `updated_at` - Timestamp update terakhir
+
+**Cara Kerja:**
+1. Admin edit template di halaman `/edit_chat`
+2. Saat save, sistem set semua template lain `is_active = 0`
+3. Template baru disimpan dengan `is_active = 1`
+4. Saat kirim reminder, sistem ambil template aktif dan replace variabel dengan data dari `reminders`
+5. History template tetap tersimpan untuk rollback
+
+**Keuntungan:**
+- ✅ Admin bisa ubah format pesan tanpa coding
+- ✅ Version control built-in (history tersimpan)
+- ✅ Konsistensi pesan terjamin (single active template)
+- ✅ Mudah rollback ke template sebelumnya
+
 **Note:** Database akan otomatis dibuat saat pertama kali menjalankan aplikasi. Default template akan otomatis diinsert.
+
+### Relasi Antar Tabel
+
+Database ini menggunakan relasi **logis** tanpa foreign key constraint:
+- `reminders.phone` ←→ `messages.phone` (relasi implisit via nomor telepon)
+- `chat_templates` → Digunakan oleh `build_message()` function untuk format pesan
+
+**Diagram Relasi:**
+```
+reminders (data kendaraan)
+    ↓ phone
+messages (log pesan) ← chat_templates (format pesan)
+```
+
+### Melihat Struktur Database
+
+Untuk melihat struktur lengkap database dengan tampilan MySQL-style:
+
+```bash
+# Windows
+show_db.bat
+
+# Linux/Mac
+python show_db_simple.py
+```
+
+**Output yang ditampilkan:**
+- SHOW TABLES - Daftar semua tabel
+- DESCRIBE TABLE - Struktur kolom seperti MySQL
+- PRIMARY KEYS - Summary semua primary key
+- FOREIGN KEYS - Relasi antar tabel (jika ada)
+- ER DIAGRAM - Diagram relasi ASCII
+- STATISTICS - Ringkasan database
+
+Tool ini sangat berguna untuk:
+- 📊 Presentasi skripsi
+- 📝 Dokumentasi database
+- 🔍 Debugging struktur tabel
+- 👨‍🏫 Menjelaskan ke dosen pembimbing
+
+Lihat [DATABASE_STRUCTURE.md](DATABASE_STRUCTURE.md) untuk dokumentasi lengkap.
+
+---
+
+## 🗄️ Database Tools
+
+### Database Structure Analyzer
+
+Project ini dilengkapi dengan tool untuk menganalisis dan menampilkan struktur database dengan format MySQL-style yang profesional.
+
+#### Quick Start
+
+**Windows:**
+```bash
+show_db.bat
+```
+
+**Linux/Mac:**
+```bash
+python show_db_simple.py
+```
+
+#### Fitur Tool
+
+Tool ini menampilkan informasi lengkap database dalam format yang mudah dipahami:
+
+1. **SHOW TABLES**
+   - Daftar semua tabel dalam database
+   - Numbered list untuk referensi mudah
+
+2. **DESCRIBE TABLE** (untuk setiap tabel)
+   - Nama kolom (Field)
+   - Tipe data (Type)
+   - Null constraint (YES/NO)
+   - Key type (PRI untuk primary key)
+   - Default value
+   - Extra info (auto_increment, dll)
+
+3. **SHOW CREATE TABLE**
+   - SQL statement lengkap untuk membuat tabel
+   - Berguna untuk dokumentasi dan migrasi
+
+4. **TABLE STATUS**
+   - Jumlah rows
+   - Engine type
+   - Row format
+   - Create time
+
+5. **PRIMARY KEYS SUMMARY**
+   - Tabel dengan primary key columns
+   - Constraint type
+
+6. **FOREIGN KEYS SUMMARY**
+   - Relasi antar tabel (jika ada)
+   - Logical relationships (untuk database tanpa FK constraint)
+
+7. **ER DIAGRAM (ASCII)**
+   - Visualisasi relasi antar tabel
+   - Mudah dipahami untuk presentasi
+
+8. **DATABASE STATISTICS**
+   - Total tables
+   - Total rows
+   - Database size
+   - Summary per tabel
+
+#### Contoh Output
+
+```
+========================================================================================================================
+  SHOW TABLES
+========================================================================================================================
++-------+--------------------------------+
+| No    | Tables_in_reminders.db         |
++=======+================================+
+| 1     | chat_templates                 |
+| 2     | messages                       |
+| 3     | reminders                      |
++-------+--------------------------------+
+
+========================================================================================================================
+TABLE: reminders
+========================================================================================================================
+
+DESCRIBE reminders;
+
++---------------------------+----------------------+----------+----------+-----------------+----------------------+
+| Field                     | Type                 | Null     | Key      | Default         | Extra                |
++===========================+======================+==========+==========+=================+======================+
+| id                        | INTEGER              | YES      | PRI      | NULL            | auto_increment       |
+| name                      | TEXT                 | NO       |          | NULL            |                      |
+| vehicle_number            | TEXT                 | NO       |          | NULL            |                      |
+| test_date                 | TEXT                 | NO       |          | NULL            |                      |
+| phone                     | TEXT                 | YES      |          | NULL            |                      |
++---------------------------+----------------------+----------+----------+-----------------+----------------------+
+```
+
+#### Kegunaan
+
+Tool ini sangat berguna untuk:
+
+- 📊 **Presentasi Skripsi**: Tampilan profesional untuk menjelaskan struktur database ke dosen
+- 📝 **Dokumentasi**: Generate dokumentasi database otomatis
+- 🔍 **Debugging**: Cek struktur tabel dengan cepat
+- 👨‍🏫 **Pembelajaran**: Memahami relasi antar tabel
+- 🔧 **Development**: Referensi cepat saat coding
+
+#### File-file Terkait
+
+- `show_db_simple.py` - Script utama (tanpa dependency eksternal)
+- `show_db.bat` - Batch file untuk Windows
+- `useful_queries.sql` - Kumpulan 100+ SQL queries berguna
+- `DATABASE_STRUCTURE.md` - Dokumentasi lengkap struktur database
+- `QUICK_DB_REFERENCE.md` - Quick reference dan cheat sheet
 
 ---
 
