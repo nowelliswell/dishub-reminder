@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Edit Template Chat - Dishub</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/design-system.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/utilities.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      background: var(--gray-50);
+      padding: 2rem 1.5rem;
+      min-height: 100vh;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 1.75rem;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-title i {
+      color: var(--primary);
+    }
+
+    .preview-card {
+      background: var(--success-light);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      border-left: 4px solid var(--success);
+      white-space: pre-wrap;
+      line-height: 1.6;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .variable-tag {
+      display: inline-block;
+      background: var(--warning-light);
+      color: #92400e;
+      padding: 0.25rem 0.625rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin: 0.125rem;
+      cursor: pointer;
+      border: 1px solid var(--warning);
+      transition: all var(--transition-fast);
+    }
+
+    .variable-tag:hover {
+      background: var(--warning);
+      color: var(--white);
+    }
+
+    textarea.form-control {
+      min-height: 400px;
+      resize: vertical;
+    }
+
+    .info-box {
+      background: var(--info-light);
+      border-left: 4px solid var(--info);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.25rem;
+    }
+
+    .variable-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    @media(max-width:768px){
+      .header-title { font-size: 1.5rem; }
+      body { padding: 1.5rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+      <div class="col">
+        <div class="header-title">
+          <i class="bi bi-chat-left-text-fill" style="color:var(--brand-blue-1);"></i>
+          Edit Template Chat WhatsApp
+        </div>
+        <div class="text-muted">Kelola template pesan pengingat uji kendaraan</div>
+      </div>
+      <div class="col-auto">
+        <button id="btnBack" class="btn btn-secondary" onclick="window.location.href='/list'">
+          <i class="bi bi-arrow-left me-2"></i>Kembali
+        </button>
+      </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <h6 class="mb-2 font-semibold"><i class="bi bi-info-circle-fill me-2"></i>Informasi</h6>
+      <p class="mb-0 text-sm">Gunakan variabel di bawah ini untuk personalisasi pesan. Klik variabel untuk menyalin ke clipboard.</p>
+    </div>
+
+    <div class="row">
+      <!-- Editor Section -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-pencil-square me-2 text-primary"></i>Editor Template</h5>
+          
+          <!-- Available Variables -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Variabel Tersedia (Klik untuk copy):</label>
+            <div class="variable-list">
+              <span class="variable-tag" data-var="{% raw %}{{name}}{% endraw %}" title="Nama pemilik kendaraan">{% raw %}{{name}}{% endraw %}</span>
+              <span class="variable-tag" data-var="{% raw %}{{vehicle_number}}{% endraw %}" title="Nomor kendaraan">{% raw %}{{vehicle_number}}{% endraw %}</span>
+              <span class="variable-tag" data-var="{% raw %}{{no_uji}}{% endraw %}" title="Nomor uji">{% raw %}{{no_uji}}{% endraw %}</span>
+              <span class="variable-tag" data-var="{% raw %}{{jenis_kendaraan}}{% endraw %}" title="Jenis kendaraan">{% raw %}{{jenis_kendaraan}}{% endraw %}</span>
+              <span class="variable-tag" data-var="{% raw %}{{test_date}}{% endraw %}" title="Tanggal uji kendaraan">{% raw %}{{test_date}}{% endraw %}</span>
+            </div>
+          </div>
+
+          <!-- Template Editor -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Template Pesan:</label>
+            <textarea id="templateEditor" class="form-control" placeholder="Tulis template pesan di sini..."></textarea>
+            <small class="text-muted">Gunakan variabel di atas untuk personalisasi pesan</small>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex gap-2 flex-wrap">
+            <button id="btnSave" class="btn btn-success">
+              <i class="bi bi-save me-2"></i>
+              <span id="saveText">Simpan Template</span>
+              <span id="saveSpinner" class="spinner-sm d-none ms-2"></span>
+            </button>
+            <button id="btnReset" class="btn btn-warning">
+              <i class="bi bi-arrow-clockwise me-2"></i>Reset ke Default
+            </button>
+            <button id="btnTest" class="btn btn-info">
+              <i class="bi bi-send me-2"></i>Test Kirim
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <!-- Preview Section -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-eye me-2 text-success"></i>Preview Pesan</h5>
+          
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Contoh Data untuk Preview:</label>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <input type="text" id="previewNama" class="form-control form-control-sm" placeholder="Nama" value="Budi Santoso">
+              </div>
+              <div class="col-md-6">
+                <input type="text" id="previewNomor" class="form-control form-control-sm" placeholder="Nomor Kendaraan" value="AD 1234 BC">
+              </div>
+              <div class="col-md-6">
+                <input type="text" id="previewNoUji" class="form-control form-control-sm" placeholder="No Uji" value="DPR 5060790">
+              </div>
+              <div class="col-md-6">
+                <input type="text" id="previewJenis" class="form-control form-control-sm" placeholder="Jenis Kendaraan" value="Truck">
+              </div>
+              <div class="col-md-6">
+                <input type="date" id="previewTanggal" class="form-control form-control-sm" value="2025-12-10">
+              </div>
+              <div class="col-md-6">
+                <button id="btnUpdatePreview" class="btn btn-primary btn-sm w-100">
+                  <i class="bi bi-arrow-repeat me-1"></i>Update Preview
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <label class="form-label fw-semibold">Preview:</label>
+          <div id="previewBox" class="preview-card">
+            <em class="text-muted">Preview akan muncul di sini...</em>
+          </div>
+
+          <div class="mt-3">
+            <small class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              Preview ini menunjukkan bagaimana pesan akan terlihat di WhatsApp
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Default template
+    const DEFAULT_TEMPLATE = `🚗 Halo Sdr/i {{name}} (sesuai STNK) 
+
+📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {{vehicle_number}} 
+🔢 Nomor Uji : {{no_uji}} 
+🚛 Jenis Kendaraan : {{jenis_kendaraan}} 
+📆 Tanggal Uji Kendaraan: {{test_date}}
+
+⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.
+✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan. 
+🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan
+⏰ Harap hadir sesuai jadwal 
+
+🙏 Terima Kasih - Dishub Kota Surakarta`;
+
+    const templateEditor = document.getElementById('templateEditor');
+    const previewBox = document.getElementById('previewBox');
+    const btnSave = document.getElementById('btnSave');
+    const btnReset = document.getElementById('btnReset');
+    const btnTest = document.getElementById('btnTest');
+    const btnUpdatePreview = document.getElementById('btnUpdatePreview');
+    const saveSpinner = document.getElementById('saveSpinner');
+    const saveText = document.getElementById('saveText');
+
+    // Load template from database
+    async function loadTemplate() {
+      try {
+        const response = await fetch('/api/template');
+        const data = await response.json();
+        if (data.status === 'ok' && data.template) {
+          templateEditor.value = data.template;
+        } else {
+          templateEditor.value = DEFAULT_TEMPLATE;
+        }
+      } catch (error) {
+        console.error('Error loading template:', error);
+        templateEditor.value = DEFAULT_TEMPLATE;
+      }
+      updatePreview();
+    }
+
+    // Update preview
+    function updatePreview() {
+      const template = templateEditor.value;
+      const nama = document.getElementById('previewNama').value;
+      const nomor = document.getElementById('previewNomor').value;
+      const noUji = document.getElementById('previewNoUji').value;
+      const jenis = document.getElementById('previewJenis').value;
+      const tanggal = document.getElementById('previewTanggal').value;
+
+      let preview = template
+        .replace(/\{\{name\}\}/g, nama)
+        .replace(/\{\{vehicle_number\}\}/g, nomor)
+        .replace(/\{\{no_uji\}\}/g, noUji)
+        .replace(/\{\{jenis_kendaraan\}\}/g, jenis)
+        .replace(/\{\{test_date\}\}/g, tanggal);
+
+      previewBox.textContent = preview || 'Preview akan muncul di sini...';
+    }
+
+    // Copy variable to clipboard and insert at cursor
+    document.querySelectorAll('.variable-tag').forEach(tag => {
+      tag.addEventListener('click', function() {
+        const variable = this.dataset.var;
+        
+        // Insert at cursor position
+        const start = templateEditor.selectionStart;
+        const end = templateEditor.selectionEnd;
+        const text = templateEditor.value;
+        templateEditor.value = text.substring(0, start) + variable + text.substring(end);
+        templateEditor.selectionStart = templateEditor.selectionEnd = start + variable.length;
+        templateEditor.focus();
+
+        // Show toast
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: `Variabel ${variable} ditambahkan`,
+          showConfirmButton: false,
+          timer: 1500
+        });
+
+        updatePreview();
+      });
+    });
+
+    // Save template
+    btnSave.addEventListener('click', async function() {
+      const template = templateEditor.value.trim();
+      
+      if (!template) {
+        Swal.fire('Peringatan', 'Template tidak boleh kosong!', 'warning');
+        return;
+      }
+
+      try {
+        saveSpinner.classList.remove('d-none');
+        saveText.textContent = 'Menyimpan...';
+        btnSave.disabled = true;
+
+        // Save to database via API
+        const response = await fetch('/api/template', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            template: template,
+            name: 'Custom Template'
+          })
+        });
+
+        const data = await response.json();
+
+        // ✅ FIX: Check response properly
+        if (response.ok && data.status === 'ok') {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Template berhasil disimpan ke database',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          // If response not ok, show error
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menyimpan',
+            text: data.message || 'Terjadi kesalahan saat menyimpan template',
+            confirmButtonText: 'OK'
+          });
+        }
+
+      } catch (error) {
+        console.error('Save template error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menyimpan',
+          text: 'Gagal menyimpan template: ' + error.message,
+          confirmButtonText: 'OK'
+        });
+      } finally {
+        saveSpinner.classList.add('d-none');
+        saveText.textContent = 'Simpan Template';
+        btnSave.disabled = false;
+      }
+    });
+
+    // Reset to default
+    btnReset.addEventListener('click', function() {
+      Swal.fire({
+        title: 'Reset Template?',
+        text: 'Template akan dikembalikan ke default. Lanjutkan?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Reset',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          templateEditor.value = DEFAULT_TEMPLATE;
+          updatePreview();
+          Swal.fire({
+            icon: 'success',
+            title: 'Template direset',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        }
+      });
+    });
+
+    // Test send
+    btnTest.addEventListener('click', function() {
+      Swal.fire({
+        title: '<strong>📤 Test Kirim Pesan</strong>',
+        html: `
+          <div style="text-align: left; padding: 10px 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+              <i class="bi bi-phone" style="margin-right: 5px;"></i>Nomor WhatsApp
+            </label>
+            <input 
+              type="text" 
+              id="testPhone" 
+              class="swal2-input" 
+              placeholder="Contoh: 81234567890"
+              style="width: 100%; margin: 0; padding: 12px; border: 2px solid #e6eef9; border-radius: 8px; font-size: 14px;"
+            >
+            <div style="margin-top: 12px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+              <small style="color: #1565c0; font-size: 13px;">
+                <i class="bi bi-info-circle" style="margin-right: 5px;"></i>
+                Pesan akan dikirim menggunakan template yang sedang aktif
+              </small>
+            </div>
+            <div style="margin-top: 8px;">
+              <small style="color: #666; font-size: 12px;">
+                Format: 9-13 digit angka tanpa awalan 0 atau +62
+              </small>
+            </div>
+          </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-send-fill" style="margin-right: 5px;"></i>Kirim Sekarang',
+        cancelButtonText: '<i class="bi bi-x-circle" style="margin-right: 5px;"></i>Batal',
+        confirmButtonColor: '#1DB954',
+        cancelButtonColor: '#6c757d',
+        customClass: {
+          confirmButton: 'btn btn-success',
+          cancelButton: 'btn btn-secondary'
+        },
+        preConfirm: () => {
+          const phone = document.getElementById('testPhone').value.trim();
+          if (!phone) {
+            Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Nomor WhatsApp harus diisi');
+            return false;
+          }
+          if (!/^[0-9]{9,13}$/.test(phone)) {
+            Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Format nomor tidak valid (9-13 digit angka)');
+            return false;
+          }
+          return phone;
+        }
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          // Show loading
+          Swal.fire({
+            title: 'Mengirim Pesan...',
+            html: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
+          try {
+            // Get current template
+            const currentTemplate = templateEditor.value;
+            
+            // Build test message with sample data
+            const testMessage = currentTemplate
+              .replace(/{nama}/g, 'Test User')
+              .replace(/{nomor_kendaraan}/g, 'B 1234 XYZ')
+              .replace(/{no_uji}/g, 'TEST-001')
+              .replace(/{jenis_kendaraan}/g, 'Truck')
+              .replace(/{tanggal_uji}/g, new Date().toISOString().split('T')[0]);
+
+            // Normalize phone number (add 62 prefix if needed)
+            let normalizedPhone = result.value;
+            if (normalizedPhone.startsWith('0')) {
+              normalizedPhone = '62' + normalizedPhone.substring(1);
+            } else if (!normalizedPhone.startsWith('62')) {
+              normalizedPhone = '62' + normalizedPhone;
+            }
+
+            // Send via Node.js API
+            const response = await fetch('http://localhost:3000/send', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                phone: normalizedPhone,
+                message: testMessage
+              })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Pesan Terkirim!',
+                html: `
+                  <div style="text-align: left; padding: 10px;">
+                    <p style="margin: 10px 0;"><strong>Nomor Tujuan:</strong> ${normalizedPhone}</p>
+                    <p style="margin: 10px 0;"><strong>Status:</strong> <span style="color: #1DB954;">✓ Berhasil</span></p>
+                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px;">
+                      <strong>Catatan:</strong> Pesan test telah dikirim menggunakan template aktif dengan data contoh
+                    </div>
+                  </div>
+                `,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#1DB954'
+              });
+            } else {
+              throw new Error(data.error || 'Gagal mengirim pesan');
+            }
+          } catch (error) {
+            console.error('Test send error:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal Mengirim',
+              html: `
+                <div style="text-align: left; padding: 10px;">
+                  <p style="margin: 10px 0; color: #dc3545;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> ${error.message}
+                  </p>
+                  <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; font-size: 13px;">
+                    <strong>Kemungkinan penyebab:</strong>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                      <li>WhatsApp bot belum terkoneksi</li>
+                      <li>Nomor WhatsApp tidak valid</li>
+                      <li>Server Node.js tidak berjalan</li>
+                    </ul>
+                  </div>
+                </div>
+              `,
+              confirmButtonText: 'OK',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        }
+      });
+    });
+
+    // Update preview on input
+    templateEditor.addEventListener('input', updatePreview);
+    btnUpdatePreview.addEventListener('click', updatePreview);
+
+    // Preview inputs auto-update
+    ['previewNama', 'previewNomor', 'previewNoUji', 'previewJenis', 'previewTanggal'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updatePreview);
+    });
+
+    // Initialize
+    loadTemplate();
+  </script>
+</body>
+</html>

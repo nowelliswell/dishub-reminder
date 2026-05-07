@@ -1,0 +1,80 @@
+/* Common Styles for Dishub Reminder App */
+
+/* Color Scheme Variables */
+:root {
+  --bg1: #f6fbff;
+  --accent1: #81d4fa;
+  --accent2: #7ef6d7;
+  --muted: #6b7280;
+  --card-shadow: 0 10px 30px rgba(38,50,56,0.06);
+  --error: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+}
+
+/* Typography */
+body {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(120deg, #f8fafc 0%, #e9f4ff 60%, #f1f6f9 100%);
+  color: #1f2937;
+}
+
+/* Gradient Text for Titles */
+.gradient-text {
+  background: linear-gradient(90deg, #00e676, #00bcd4, #448aff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Card Styles */
+.card-surface {
+  background: rgba(255,255,255,0.98);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+  padding: 22px;
+}
+
+/* Button Styles */
+.btn-modern {
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
+/* Badge Styles */
+.badge-status {
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.badge-success {
+  background: #e6f8ef;
+  color: #0f9d58;
+}
+
+.badge-warning {
+  background: #fff8e8;
+  color: #a16207;
+}
+
+.badge-danger {
+  background: #fff0f1;
+  color: #be123c;
+}
+
+.badge-secondary {
+  background: #f0f4f8;
+  color: #475569;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .card-surface {
+    padding: 15px;
+  }
+}

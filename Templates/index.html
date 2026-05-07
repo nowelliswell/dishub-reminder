@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sistem Pengingat Uji Kendaraan - Dishub</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/design-system.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/utilities.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      padding: 1.75rem;
+      background: var(--gray-50);
+    }
+
+    .container { 
+      max-width: 1200px; 
+      margin: 0 auto; 
+    }
+
+    .header-wrap { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 1rem; 
+      margin-bottom: 1.5rem; 
+    }
+
+    .header-left { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 0.25rem; 
+    }
+
+    .header-left h1 { 
+      font-size: 1.625rem; 
+      margin: 0; 
+      font-weight: 700; 
+      color: var(--gray-900); 
+      display: flex; 
+      align-items: center; 
+      gap: 0.625rem; 
+    }
+
+    .header-left h1 i {
+      color: var(--primary);
+      font-size: 1.75rem;
+    }
+
+    .header-sub { 
+      font-size: 0.8125rem; 
+      color: var(--gray-500); 
+    }
+
+    .status-list { 
+      background: var(--white); 
+      border-radius: var(--radius-lg); 
+      padding: 1rem; 
+      box-shadow: var(--shadow-sm); 
+      border: 1px solid var(--gray-200);
+      margin-bottom: 1.5rem; 
+    }
+
+    .status-pill { 
+      display: inline-block; 
+      margin-right: 0.5rem; 
+      padding: 0.5rem 1rem; 
+      border-radius: var(--radius-full); 
+      font-weight: 600; 
+      font-size: 0.875rem; 
+      color: var(--primary); 
+      background: var(--primary-light); 
+      border: 1px solid transparent; 
+      cursor: pointer; 
+      transition: all var(--transition-base); 
+    }
+
+    .status-pill.active { 
+      background: var(--primary); 
+      color: var(--white); 
+      border: 1px solid var(--primary); 
+      box-shadow: var(--shadow-md); 
+      transform: translateY(-1px); 
+    }
+
+    .status-pill-danger { 
+      background: var(--danger-light); 
+      color: var(--danger); 
+    }
+
+    .status-pill-danger.active { 
+      background: var(--danger); 
+      color: var(--white); 
+      border-color: var(--danger); 
+    }
+
+    .status-pill-warning { 
+      background: var(--warning-light); 
+      color: #92400e; 
+    }
+
+    .status-pill-warning.active { 
+      background: var(--warning); 
+      color: var(--white); 
+      border-color: var(--warning); 
+    }
+
+    .status-pill-success { 
+      background: var(--success-light); 
+      color: #065f46; 
+    }
+
+    .status-pill-success.active { 
+      background: var(--success); 
+      color: var(--white); 
+      border-color: var(--success); 
+    }
+
+    .status-pill-secondary { 
+      background: var(--gray-200); 
+      color: var(--gray-700); 
+    }
+
+    .status-pill-secondary.active { 
+      background: var(--gray-600); 
+      color: var(--white); 
+      border-color: var(--gray-600); 
+    }
+
+    .table-card { 
+      border-radius: var(--radius-lg); 
+      overflow: hidden; 
+      background: var(--white); 
+      box-shadow: var(--shadow-sm); 
+      border: 1px solid var(--gray-200);
+      margin-bottom: 1rem; 
+    }
+
+    .table thead th { 
+      background: var(--gray-100); 
+      border-bottom: 2px solid var(--gray-200); 
+      color: var(--gray-700); 
+      font-weight: 600; 
+    }
+
+    @media(max-width:900px){
+      .header-wrap { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- HEADER -->
+    <div class="header-wrap">
+      <div class="header-left">
+        <h1><i class="bi bi-calendar2-check-fill" style="color:var(--brand-blue-1); font-size:28px;"></i> Sistem Pengingat Uji Kendaraan</h1>
+        <div class="header-sub">Dinas Perhubungan - Monitoring & Management</div>
+      </div>
+
+      <!-- NOTE: Refresh uses the same primary button style as Save -->
+      <div>
+        <button id="btnRefreshTop" class="btn btn-primary" title="Refresh data">
+          <i class="bi bi-arrow-repeat"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FORM (card) -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-plus-circle text-primary"></i> Tambah Reminder Baru</h5>
+
+      <form id="reminderForm" novalidate>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nama Pemilik <span style="font-size:12px; color:var(--muted)">(Sesuai STNK/KTP)</span></label>
+            <input type="text" id="nameInput" name="name" class="form-control" required placeholder="Nama sesuai STNK/KTP">
+            <div class="invalid-feedback">Nama pemilik harus diisi</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Nomor Kendaraan</label>
+            <input type="text" id="vehicleNumberInput" name="vehicle_number" class="form-control" required placeholder="AB 1234 CD">
+            <div class="invalid-feedback">Nomor kendaraan harus diisi</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">No Uji</label>
+            <input type="text" id="noUjiInput" name="no_uji" class="form-control" required placeholder="SLO 6798/...">
+            <div class="invalid-feedback">Nomor uji harus diisi</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Jenis Kendaraan</label>
+            <select id="jenisKendaraanInput" name="jenis_kendaraan" class="form-control" required>
+              <option value="">Pilih Jenis Kendaraan</option>
+              <option value="Truck">Truck</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Mobil barang">Mobil barang</option>
+              <option value="Tronton">Tronton</option>
+            </select>
+            <div class="invalid-feedback">Jenis kendaraan harus dipilih</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Tanggal Uji</label>
+            <input type="date" id="testDateInput" name="test_date" class="form-control" required>
+            <div class="invalid-feedback">Tanggal uji harus diisi</div>
+          </div>
+
+           <div class="col-md-6">
+            <label class="form-label">No. WhatsApp</label>
+            <div class="input-group has-validation">
+              <input type="text" class="form-control" id="phoneInput" name="phone" placeholder="812xxxxxx" pattern="^[0-9]{9,13}$">
+              <div class="invalid-feedback">Format nomor WhatsApp tidak valid (contoh: 81234567890)</div>
+            </div>
+            <small style="color:var(--muted);">Format: 812xxxxxxx (tanpa awalan 0)</small>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <!-- Save uses same primary look as refresh -->
+          <button id="submitBtn" type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i>
+            <span id="submitText">Simpan Reminder</span>
+            <span id="submitSpinner" class="spinner-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+      </div>
+    </div>
+
+    <!-- Status pills -->
+    <div class="status-list">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Filter Status</div>
+      <div id="statusPills"></div>
+    </div>
+
+    <!-- Table card -->
+    <div class="table-card">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">Daftar Reminder</h5>
+          <small style="color:var(--muted)">Data pengingat uji kendaraan</small>
+        </div>
+      </div>
+
+      <div id="tableLoading" class="text-center my-4 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Memuat data...</p>
+      </div>
+
+      <div class="p-3 table-responsive">
+        <table id="reminderTable" class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>No. Kendaraan</th>
+              <th>No Uji</th>
+              <th>Jenis Kendaraan</th>
+              <th>Tanggal Uji</th>
+              <th>No. WA</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div id="emptyTableMessage" class="text-center my-4 d-none">
+          <p class="text-muted">Tidak ada data pengingat untuk ditampilkan.</p>
+        </div>
+      </div>
+
+      <div class="p-3 dashed-top d-flex gap-2 flex-wrap align-items-center">
+        <div class="flex-fill text-muted text-sm">Tip: Klik pill status untuk memfilter, tekan Refresh untuk ambil data terbaru.</div>
+        <div style="min-width:420px; display:flex; gap:12px; flex-wrap: wrap;">
+          <button id="runNowBtn" class="btn btn-success">
+            <i class="bi bi-play-fill"></i>
+            <span>Kirim Semua Hari Ini</span>
+            <span id="runNowSpinner" class="spinner-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+          </button>
+
+          <button id="clearBtn" class="btn btn-outline-danger">
+            <i class="bi bi-trash3"></i>
+            <span>Hapus Semua</span>
+          </button>
+
+          <button id="resetAuthBtn" class="btn btn-warning">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Reset Login WA</span>
+          </button>
+
+          <button id="btnLogout" class="btn btn-secondary">
+            <span>Keluar</span>
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== SCRIPT ============== -->
+  <script>
+    (function(){
+      // Base endpoints (configured earlier)
+      const API_BASE = "http://127.0.0.1:5000";
+      const RESET_BASE = "http://127.0.0.1:3000";
+
+      // Tiny selectors
+      const $ = (s, ctx=document) => ctx.querySelector(s);
+      const $$ = (s, ctx=document) => Array.from(ctx.querySelectorAll(s));
+
+      // Simple HTML escape
+      const escapeHtml = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+      // Normalize Indonesian WA number to 62...
+      function normalizePhone(v){
+        v = (v||'').toString().trim();
+        if(!v) return '';
+        if(v.startsWith('0')) return '62' + v.slice(1);
+        if(!v.startsWith('62')) return '62' + v;
+        return v;
+      }
+
+      async function fetchJSON(url, opts){
+        const res = await fetch(url, opts);
+        const txt = await res.text();
+        try { return { ok: res.ok, status: res.status, data: txt ? JSON.parse(txt) : null }; }
+        catch(e){ return { ok: res.ok, status: res.status, data: txt }; }
+      }
+
+      /* State & refs */
+      window.allReminders = [];
+      const statusList = [
+        { label: "Semua", value: "" },
+        { label: "Expired", value: "Expired" },
+        { label: "H (today)", value: "H (today)" },
+        { label: "H-1", value: "H-1" },
+        { label: "H-2", value: "H-2" },
+        { label: "H-3 or more", value: "H-3 or more" }
+      ];
+      let activeStatus = "";
+
+      const reminderForm = $("#reminderForm");
+      const submitBtn = $("#submitBtn");
+      const submitSpinner = $("#submitSpinner");
+      const submitText = $("#submitText");
+      const tableLoading = $("#tableLoading");
+      const reminderTableBody = $("#reminderTable tbody");
+      const emptyTableMessage = $("#emptyTableMessage");
+      const statusPills = $("#statusPills");
+      const btnRefreshTop = $("#btnRefreshTop");
+      const idFlagBtn = $("#idFlagBtn");
+      const phoneInput = $("#phoneInput");
+      const runNowBtn = $("#runNowBtn");
+      const runNowSpinner = $("#runNowSpinner");
+      const clearBtn = $("#clearBtn");
+      const resetAuthBtn = $("#resetAuthBtn");
+      const btnLogout = $("#btnLogout");
+
+      // Tiny helper: toast using Swal
+      function showToast(title, icon='success', t=1400){ Swal.fire({ toast:true, position:'top-end', icon, title, showConfirmButton:false, timer:t }); }
+
+      /* Render status pills */
+      function pillClass(status){
+        switch(status){
+          case "Expired": return 'status-pill-secondary';
+          case "H (today)": return 'status-pill-danger';
+          case "H-1": return 'status-pill-warning';
+          case "H-2": return 'status-pill-secondary';
+          case "H-3 or more": return 'status-pill-success';
+          default: return '';
+        }
+      }
+
+      function renderStatusPills(){
+        statusPills.innerHTML = '';
+        statusList.forEach(s=>{
+          const btn = document.createElement('button');
+          btn.type='button';
+          btn.className = 'status-pill ' + pillClass(s.value) + (s.value===activeStatus ? ' active' : '');
+          btn.textContent = s.label;
+          btn.dataset.status = s.value;
+          btn.addEventListener('click', ()=>{
+            activeStatus = (activeStatus === s.value) ? '' : s.value;
+            $$('.status-pill').forEach(p=>p.classList.remove('active'));
+            const target = document.querySelector(`.status-pill[data-status="${activeStatus}"]`);
+            if(target) target.classList.add('active');
+            else document.querySelector('.status-pill[data-status=""]').classList.add('active');
+            renderTable();
+          });
+          statusPills.appendChild(btn);
+        });
+        // default active 'Semua'
+        const first = document.querySelector('.status-pill[data-status=""]');
+        if(first) first.classList.add('active');
+      }
+
+      /* Load reminders from backend */
+      async function loadReminders(){
+        try{
+          tableLoading.classList.remove('d-none');
+          reminderTableBody.style.opacity = .5;
+          const res = await fetchJSON(`${API_BASE}/list?format=json`);
+          if(res.ok && Array.isArray(res.data)) window.allReminders = res.data;
+          else window.allReminders = [];
+          renderTable();
+        }catch(err){
+          console.error(err);
+          Swal.fire("⚠️ Error", "Terjadi kesalahan saat memuat data: " + (err.message||err), "error");
+        }finally{
+          tableLoading.classList.add('d-none');
+          reminderTableBody.style.opacity = 1;
+        }
+      }
+
+      /* Render table rows */
+      function badgeClass(status){
+        switch(status){
+          case "H (today)": return 'badge-danger';
+          case "H-1": return 'badge-warning';
+          case "H-3 or more": return 'badge-success';
+          case "Expired": return 'badge-secondary';
+          default: return 'badge-secondary';
+        }
+      }
+
+      function renderTable(){
+        reminderTableBody.innerHTML = '';
+        const list = (window.allReminders || []).filter(r=>{
+          if(!activeStatus) return true;
+          return r.status === activeStatus;
+        });
+
+        if(list.length === 0){
+          emptyTableMessage.classList.remove('d-none');
+        } else {
+          emptyTableMessage.classList.add('d-none');
+        }
+
+        list.forEach(r=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(r.name||'')}</td>
+            <td>${escapeHtml(r.vehicle_number||'')}</td>
+            <td>${escapeHtml(r.no_uji||'-')}</td>
+            <td>${escapeHtml(r.jenis_kendaraan||'-')}</td>
+            <td>${escapeHtml(r.test_date||'')}</td>
+            <td>${escapeHtml(r.phone||'-')}</td>
+            <td><span class="badge-status ${badgeClass(r.status)}">${escapeHtml(r.status||'-')}</span></td>
+            <td>
+              <button class="btn btn-sm btn-primary me-1 send-one" data-id="${r.id}">📤 Kirim</button>
+              <button class="btn btn-sm btn-outline-danger delete-one" data-id="${r.id}">🗑️</button>
+            </td>
+          `;
+          reminderTableBody.appendChild(tr);
+
+          tr.querySelector('.send-one').addEventListener('click', ()=> sendOne(r.id));
+          tr.querySelector('.delete-one').addEventListener('click', ()=> deleteOne(r.id));
+        });
+      }
+
+      /* Validation helper */
+      function validateEl(el){
+        if(!el) return true;
+        const v = (el.value||'').toString().trim();
+        if(el.required && !v){ el.classList.add('is-invalid'); el.classList.remove('is-valid'); return false; }
+        if(el.name==='phone' && v){
+          if(!/^[0-9]{9,13}$/.test(v)){ el.classList.add('is-invalid'); el.classList.remove('is-valid'); return false; }
+        }
+        el.classList.remove('is-invalid'); el.classList.add('is-valid'); return true;
+      }
+
+      /* Add reminder (submit) */
+      reminderForm && reminderForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const required = Array.from(reminderForm.querySelectorAll('input[required], select[required]'));
+        let ok = true;
+        required.forEach(i=>{ if(!validateEl(i)) ok = false; });
+        if(!validateEl(phoneInput)) ok = false;
+        if(!ok){ Swal.fire('Periksa form', 'Semua field wajib diisi dengan benar!', 'warning'); return; }
+
+        const fd = new FormData(reminderForm);
+        const payload = {};
+        fd.forEach((v,k)=> { if(k!=='nik') payload[k] = (k==='phone') ? normalizePhone(v) : v; });
+
+        try{
+          submitBtn.disabled=true;
+          submitSpinner.classList.remove('d-none');
+          submitText.textContent = 'Menyimpan...';
+          const res = await fetchJSON(`${API_BASE}/add`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+          if(res.ok){
+            showToast('✅ Reminder berhasil ditambahkan!', 'success');
+            reminderForm.reset();
+            $$('.form-control').forEach(i=>i.classList.remove('is-valid','is-invalid'));
+            await loadReminders();
+          }else{
+            Swal.fire("⚠️ Gagal", "Tidak bisa menambahkan reminder.", "error");
+            console.warn('add failed', res);
+          }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Terjadi kesalahan: " + (err.message||err), "error");
+        }finally{
+          submitBtn.disabled=false;
+          submitSpinner.classList.add('d-none');
+          submitText.textContent = 'Simpan Reminder';
+        }
+      });
+
+      /* Send one */
+      async function sendOne(id){
+        const c = await Swal.fire({ title:'Kirim reminder?', text:'Kirim reminder ini sekarang?', icon:'question', showCancelButton:true, confirmButtonText:'Ya, kirim', cancelButtonText:'Batal' });
+        if(!c.isConfirmed) return;
+        try{
+          $$('.send-one').forEach(b=>b.disabled=true);
+          const res = await fetchJSON(`${API_BASE}/send_one/${id}`, { method:'POST' });
+          if(res.ok){ showToast('Terkirim!', 'success'); await loadReminders(); }
+          else { Swal.fire("⚠️ Gagal", "Gagal mengirim reminder!", "error"); console.warn('send_one failed', res); }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Gagal mengirim reminder: " + (err.message||err), "error");
+        }finally{ $$('.send-one').forEach(b=>b.disabled=false); }
+      }
+
+      /* Delete one */
+      async function deleteOne(id){
+        const c = await Swal.fire({ title:'Hapus reminder?', text:'Data ini tidak bisa dikembalikan.', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, hapus!', cancelButtonText:'Batal' });
+        if(!c.isConfirmed) return;
+        try{
+          const res = await fetchJSON(`${API_BASE}/delete/${id}`, { method:'DELETE' });
+          if(res.ok){ showToast('🗑️ Terhapus', 'success'); await loadReminders(); }
+          else { Swal.fire("⚠️ Gagal", "Tidak bisa menghapus reminder.", "error"); console.warn('delete failed', res); }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Gagal menghapus reminder: " + (err.message||err), "error");
+        }
+      }
+
+      /* Run now (send all today) */
+      async function runNow(){
+        const c = await Swal.fire({ title:'Kirim semua reminder hari ini?', text:'Aksi ini akan mengirim semua pengingat yang jatuh tempo hari ini.', icon:'question', showCancelButton:true, confirmButtonText:'Ya, kirim sekarang', cancelButtonText:'Batal' });
+        if(!c.isConfirmed) return;
+        try{
+          runNowBtn.disabled=true;
+          runNowSpinner.classList.remove('d-none');
+          const res = await fetchJSON(`${API_BASE}/run_now`, { method:'POST' });
+          if(res.ok){ showToast('▶️ Diproses', 'info'); await loadReminders(); }
+          else { Swal.fire("⚠️ Gagal", "Gagal memproses run_now.", "error"); console.warn('run_now failed', res); }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Gagal saat memproses: " + (err.message||err), "error");
+        }finally{ runNowBtn.disabled=false; runNowSpinner.classList.add('d-none'); }
+      }
+
+      /* Clear all */
+      async function clearAll(){
+        const c = await Swal.fire({ title:'Hapus semua reminder?', text:'Semua data akan hilang permanen.', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, hapus semua', cancelButtonText:'Batal' });
+        if(!c.isConfirmed) return;
+        try{
+          const res = await fetchJSON(`${API_BASE}/clear`, { method:'DELETE' });
+          if(res.ok){ showToast('🗑️ Terhapus', 'success'); await loadReminders(); }
+          else { Swal.fire("⚠️ Gagal", "Tidak bisa menghapus reminder.", "error"); console.warn('clear failed', res); }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Gagal saat menghapus semua: " + (err.message||err), "error");
+        }
+      }
+
+      /* Reset auth (WA) */
+      async function resetAuth(){
+        const c = await Swal.fire({ title:'Reset Login WhatsApp?', text:'Aksi ini akan menghapus sesi login WhatsApp. Lanjutkan?', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, reset', cancelButtonText:'Batal' });
+        if(!c.isConfirmed) return;
+        try{
+          resetAuthBtn.disabled=true;
+          resetAuthBtn.innerHTML = '⏳ Resetting...';
+          const res = await fetchJSON(`${RESET_BASE}/reset-auth`, { method:'DELETE' });
+          if(res.ok){
+            Swal.fire("🔄 Reset", (res.data && res.data.message) ? res.data.message : 'Reset berhasil', "info").then(()=> { window.location.href = `${RESET_BASE}/login.html`; });
+          } else { Swal.fire("⚠️ Gagal", "Gagal reset auth.", "error"); console.warn('reset-auth failed', res); }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Gagal reset auth: " + (err.message||err), "error");
+        }finally{ resetAuthBtn.disabled=false; resetAuthBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Reset Login WA'; }
+      }
+
+      /* Logout */
+      function logout(){
+        Swal.fire({ title:'Keluar?', text:'Anda akan keluar dari Dashboard', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, Keluar', cancelButtonText:'Batal' })
+        .then(result => { if(result.isConfirmed){ Swal.fire({ icon:'success', title:'Berhasil Keluar', showConfirmButton:false, timer:1200 }); setTimeout(()=>{ window.location.href = "http://127.0.0.1:5000/"; },1300); } });
+      }
+
+      /* Misc UI wiring */
+      idFlagBtn && idFlagBtn.addEventListener('click', ()=> { if(phoneInput) phoneInput.value = normalizePhone(phoneInput.value); });
+      btnRefreshTop && btnRefreshTop.addEventListener('click', async ()=> {
+        activeStatus = ''; $$('.status-pill').forEach(p=>p.classList.remove('active'));
+        const def = document.querySelector('.status-pill[data-status=""]'); if(def) def.classList.add('active');
+        showToast('Data sudah di-refresh', 'success', 1200);
+        await loadReminders();
+      });
+
+      runNowBtn && runNowBtn.addEventListener('click', runNow);
+      clearBtn && clearBtn.addEventListener('click', clearAll);
+      resetAuthBtn && resetAuthBtn.addEventListener('click', resetAuth);
+      btnLogout && btnLogout.addEventListener('click', logout);
+
+      $$('.form-control[required]').forEach(i=>{
+        i.addEventListener('blur', ()=> validateEl(i));
+        i.addEventListener('input', ()=> { if(i.classList.contains('is-invalid')) validateEl(i); });
+      });
+
+      /* Init */
+      function init(){ renderStatusPills(); loadReminders(); }
+      init();
+
+      // Expose for debug
+      window.loadReminders = loadReminders;
+      window.sendOne = sendOne;
+      window.deleteOne = deleteOne;
+
+    })();
+  </script>
+</body>
+</html>

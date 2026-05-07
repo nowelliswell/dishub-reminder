@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dishub Reminder - Home</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/design-system.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/utilities.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: var(--primary);
+    position: relative;
+  }
+
+  .card-home {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 3rem 2.5rem;
+    box-shadow: var(--shadow-xl);
+    text-align: center;
+    max-width: 650px;
+    width: 100%;
+    animation: fadeIn 0.6s ease;
+    position: relative;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+  }
+
+  .subtitle {
+    color: var(--gray-600);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .icon-home img {
+    width: 180px;
+    height: auto;
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-custom {
+    width: 100%;
+    padding: 1.25rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-radius: var(--radius-lg);
+    border: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .btn-custom i {
+    font-size: 1.5rem;
+  }
+
+  .btn-dashboard {
+    background: linear-gradient(135deg, #0B41D4 0%, #0a38b8 100%);
+    color: var(--white);
+    border-color: #0B41D4;
+  }
+
+  .btn-dashboard:hover {
+    background: linear-gradient(135deg, #0a38b8 0%, #082d9c 100%);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(11, 65, 212, 0.4);
+    border-color: #082d9c;
+  }
+
+  .btn-dashboard:active {
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .btn-reminder {
+    background: linear-gradient(135deg, #1DB954 0%, #17a348 100%);
+    color: var(--white);
+    border-color: #1DB954;
+  }
+
+  .btn-reminder:hover {
+    background: linear-gradient(135deg, #17a348 0%, #138d3c 100%);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(29, 185, 84, 0.4);
+    border-color: #138d3c;
+  }
+
+  .btn-reminder:active {
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .button-description {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-top: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Responsiveness */
+  @media (max-width: 768px) {
+    .card-home { padding: 2.5rem 2rem; }
+    h1 { font-size: 1.75rem; }
+    .subtitle { font-size: 0.95rem; }
+  }
+
+  @media (max-width: 576px) {
+    .card-home { padding: 2rem 1.5rem; }
+    h1 { font-size: 1.5rem; }
+    .btn-custom { width: 100%; margin-bottom: 0.75rem; }
+    .d-flex.gap-3 { flex-direction: column; width: 100%; }
+  }
+
+  /* Login form styling */
+  .login-form-container {
+    padding: 1.5rem;
+  }
+
+  .input-group-modern {
+    position: relative;
+    margin-bottom: 1.25rem;
+  }
+
+  .custom-swal-input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    font-size: 1rem;
+    color: var(--gray-900);
+    transition: all var(--transition-base);
+  }
+
+  .custom-swal-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    outline: none;
+  }
+
+  .custom-swal-input::placeholder {
+    color: var(--gray-400);
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary);
+    font-size: 1.1rem;
+    z-index: 2;
+  }
+
+  .input-group-modern .text-danger {
+    position: absolute;
+    bottom: -1.25rem;
+    left: 0;
+    font-size: 0.75rem;
+    color: var(--danger);
+  }
+</style>
+
+</head>
+<body>
+  <div class="card-home">
+    <div class="icon-home"><img src="/static/uploads/Logo-Dishubkominfo-removebg-preview.png" alt="Logo Dishub Surakarta"></div>
+    <h1>Dishub Reminder System</h1>
+    <p class="subtitle">Selamat datang di sistem pengingat uji kendaraan Dishub Kota Surakarta.<br>
+       Silakan pilih menu untuk melanjutkan:</p>
+
+    <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+      <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 280px;">
+        <button id="btnDashboard" class="btn-custom btn-dashboard">
+          <i class="bi bi-table"></i> 
+          <span>Dashboard Database</span>
+        </button>
+        <small class="button-description">Kelola data pengingat kendaraan</small>
+      </div>
+      <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 280px;">
+        <button id="btnReminder" class="btn-custom btn-reminder">
+          <i class="bi bi-bell-fill"></i> 
+          <span>Sistem Pengingat</span>
+        </button>
+        <small class="button-description">Lihat dan kirim pengingat WhatsApp</small>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("btnDashboard").addEventListener("click", function() {
+      Swal.fire({
+        title: 'LOGIN DULU BOS!',
+        html: `
+          <div class="login-form-container">
+            <div class="input-group-modern">
+              <i class="bi bi-person-fill input-icon"></i>
+              <input type="text" id="uname" class="custom-swal-input" placeholder="Username" autocomplete="username">
+              <div id="unameError" class="text-danger" style="display: none;">Username harus diisi</div>
+            </div>
+            <div class="input-group-modern">
+              <i class="bi bi-lock-fill input-icon"></i>
+              <input type="password" id="pass" class="custom-swal-input" placeholder="Password" autocomplete="current-password">
+              <div id="passError" class="text-danger" style="display: none;">Password harus diisi</div>
+            </div>
+          </div>
+        `,
+        confirmButtonText: 'Login',
+        showCancelButton: true,
+        background: "#fff",
+        color: "#111827",
+        confirmButtonColor: "#0B41D4",
+        cancelButtonColor: "#6b7280",
+        focusConfirm: false,
+        preConfirm: () => {
+          const uname = document.getElementById('uname').value;
+          const pass = document.getElementById('pass').value;
+          let isValid = true;
+          
+          if (!uname) {
+            document.getElementById('unameError').style.display = 'block';
+            document.getElementById('uname').style.borderColor = '#ef4444';
+            isValid = false;
+          } else {
+            document.getElementById('unameError').style.display = 'none';
+            document.getElementById('uname').style.borderColor = '#d1d5db';
+          }
+          
+          if (!pass) {
+            document.getElementById('passError').style.display = 'block';
+            document.getElementById('pass').style.borderColor = '#ef4444';
+            isValid = false;
+          } else {
+            document.getElementById('passError').style.display = 'none';
+            document.getElementById('pass').style.borderColor = '#d1d5db';
+          }
+          
+          if (!isValid) return false;
+          
+          if (uname === "admin" && pass === "1234") {
+            return true;
+          } else {
+            Swal.showValidationMessage('Username / Password salah!');
+            return false;
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            icon: "success",
+            title: "Login Berhasil!",
+            text: "Mengalihkan ke Dashboard...",
+            showConfirmButton: false,
+            timer: 1500,
+            background: "#fff",
+            color: "#111827"
+          });
+          setTimeout(() => {
+            window.location.href = "/list";
+          }, 1500);
+        }
+      });
+    });
+    
+    // Add input event listeners for real-time validation
+    document.addEventListener('input', function(e) {
+      if (e.target && e.target.id === 'uname') {
+        if (e.target.value) {
+          document.getElementById('unameError').style.display = 'none';
+          e.target.style.borderColor = '#e0e0e0';
+        }
+      }
+      if (e.target && e.target.id === 'pass') {
+        if (e.target.value) {
+          document.getElementById('passError').style.display = 'none';
+          e.target.style.borderColor = '#e0e0e0';
+        }
+      }
+    }, true);
+
+    // Sistem Pengingat button
+    document.getElementById("btnReminder").addEventListener("click", function() {
+      window.location.href = "http://localhost:3000/login.html";
+    });
+  </script>
+
+</body>
+</html>
