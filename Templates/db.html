@@ -395,6 +395,17 @@ async function loadSummary() {
         c.classList.remove('active-card');
         const originalMap = mapping[idx];
         c.style.background = `linear-gradient(135deg, ${originalMap.bgColor}15 0%, ${originalMap.bgColor}08 100%)`;
+        
+        // Reset text colors to original
+        const icon = c.querySelector('.stat-icon');
+        const label = c.querySelector('.stat-label');
+        const count = c.querySelector('.stat-count');
+        const desc = c.querySelector('.stat-desc');
+        
+        if (icon) icon.style.color = originalMap.textColor;
+        if (label) label.style.color = originalMap.textColor;
+        if (count) count.style.color = originalMap.textColor;
+        if (desc) desc.style.color = originalMap.textColor;
       });
       
       if (status === "Semua Data") {
@@ -404,6 +415,17 @@ async function loadSummary() {
         lastStatus = "Semua Data";
         this.classList.add('active-card');
         this.style.background = m.bgColor;
+        
+        // Change text to white when active
+        const icon = this.querySelector('.stat-icon');
+        const label = this.querySelector('.stat-label');
+        const count = this.querySelector('.stat-count');
+        const desc = this.querySelector('.stat-desc');
+        
+        if (icon) icon.style.color = '#ffffff';
+        if (label) label.style.color = '#ffffff';
+        if (count) count.style.color = '#ffffff';
+        if (desc) desc.style.color = '#ffffff';
       } else {
         // Handle other status filters
         if (status === 'H-3+') status = 'H-3 or more';
@@ -417,6 +439,17 @@ async function loadSummary() {
           lastStatus = status;
           this.classList.add('active-card');
           this.style.background = m.bgColor;
+          
+          // Change text to white when active
+          const icon = this.querySelector('.stat-icon');
+          const label = this.querySelector('.stat-label');
+          const count = this.querySelector('.stat-count');
+          const desc = this.querySelector('.stat-desc');
+          
+          if (icon) icon.style.color = '#ffffff';
+          if (label) label.style.color = '#ffffff';
+          if (count) count.style.color = '#ffffff';
+          if (desc) desc.style.color = '#ffffff';
         }
       }
     });
