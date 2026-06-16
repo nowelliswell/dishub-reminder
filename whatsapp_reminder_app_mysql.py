@@ -70,8 +70,16 @@ def init_db():
         jenis_kendaraan VARCHAR(100),
         test_date DATE NOT NULL,
         phone VARCHAR(20),
+        is_tested TINYINT(1) DEFAULT 0,
         created_at DATETIME NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4''')
+    
+    # Add is_tested column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute("ALTER TABLE reminders ADD COLUMN is_tested TINYINT(1) DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -137,8 +145,21 @@ def list_reminders():
             test_date = datetime.strptime(raw_date, '%Y-%m-%d').date()
         except:
             continue
+        
         days_until = (test_date - today).days
-        status_label, color = classify_by_days(days_until)
+        
+        # Check if already tested
+        if r.get('is_tested') == 1:
+            status_label = "Sudah Uji"
+            color = "info"
+        elif days_until < 0:
+            # Tanggal sudah lewat dan belum uji -> Expired
+            status_label = "Expired"
+            color = "secondary"
+        else:
+            # Belum expired, classify by days
+            status_label, color = classify_by_days(days_until)
+        
         r['status'] = status_label
         r['color'] = color
         r['days_until'] = days_until
@@ -186,6 +207,20 @@ def log_message(direction, phone, message_text, status="unknown", meta=None):
 
 def build_message(record, status_label):
     """Build message from database template"""
+    # Ensure all values are strings and handle None first
+    name = str(record.get('name') or '')
+    vehicle_number = str(record.get('vehicle_number') or '')
+    no_uji = str(record.get('no_uji') or '')
+    jenis_kendaraan = str(record.get('jenis_kendaraan') or '')
+    test_date = str(record.get('test_date') or '')
+    
+    print(f"🔍 DEBUG - Record data:")
+    print(f"  name: '{name}'")
+    print(f"  vehicle_number: '{vehicle_number}'")
+    print(f"  no_uji: '{no_uji}'")
+    print(f"  jenis_kendaraan: '{jenis_kendaraan}'")
+    print(f"  test_date: '{test_date}'")
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT template_content FROM chat_templates WHERE is_active = 1 LIMIT 1")
@@ -195,27 +230,32 @@ def build_message(record, status_label):
     
     if template_row:
         template = template_row['template_content']
+        print(f"📄 DEBUG - Template from database:")
+        print(f"  {repr(template[:200])}...")
     else:
-        # Fallback to default template
-        template = (
-            "🚗 Halo Sdr/i {{name}} (sesuai STNK)\n\n"
-            "📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {{vehicle_number}}\n"
-            "🔢 Nomor Uji : {{no_uji}}\n"
-            "🚛 Jenis Kendaraan : {{jenis_kendaraan}}\n"
-            "📆 Tanggal Uji Kendaraan: {{test_date}}\n\n"
-            "⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n"
-            "✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan.\n"
-            "🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n"
-            "⏰ Harap hadir sesuai jadwal\n\n"
-            "🙏 Terima Kasih - Dishub Kota Surakarta"
-        )
+        # Fallback to default template with proper \n newlines
+        template = "🚗 Halo Sdr/i {{name}} (sesuai STNK)\n\n📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {{vehicle_number}}\n🔢 Nomor Uji : {{no_uji}}\n🚛 Jenis Kendaraan : {{jenis_kendaraan}}\n📆 Tanggal Uji Kendaraan: {{test_date}}\n\n⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan.\n🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n⏰ Harap hadir sesuai jadwal\n\n🙏 Terima Kasih - Dishub Kota Surakarta"
+        print("⚠️ DEBUG - Using fallback template")
     
-    # Replace variables
-    message = template.replace('{{name}}', str(record.get('name', '')))
-    message = message.replace('{{vehicle_number}}', str(record.get('vehicle_number', '')))
-    message = message.replace('{{no_uji}}', str(record.get('no_uji', '')))
-    message = message.replace('{{jenis_kendaraan}}', str(record.get('jenis_kendaraan', '')))
-    message = message.replace('{{test_date}}', str(record.get('test_date', '')))
+    # Replace variables - support both {{var}} and {var} formats
+    message = template
+    
+    # Replace {{variable}} format
+    message = message.replace('{{name}}', name)
+    message = message.replace('{{vehicle_number}}', vehicle_number)
+    message = message.replace('{{no_uji}}', no_uji)
+    message = message.replace('{{jenis_kendaraan}}', jenis_kendaraan)
+    message = message.replace('{{test_date}}', test_date)
+    
+    # Also replace {variable} format (if template uses single braces)
+    message = message.replace('{name}', name)
+    message = message.replace('{vehicle_number}', vehicle_number)
+    message = message.replace('{no_uji}', no_uji)
+    message = message.replace('{jenis_kendaraan}', jenis_kendaraan)
+    message = message.replace('{test_date}', test_date)
+    
+    print(f"✅ DEBUG - Final message:")
+    print(f"  {repr(message[:200])}...")
     
     return message
 
@@ -331,6 +371,14 @@ def send_one(reminder_id):
         return jsonify({"error": "Reminder tidak ditemukan"}), 404
 
     reminder = dict(row)
+    
+    # Convert test_date to string format if it's a date object
+    if 'test_date' in reminder and reminder['test_date']:
+        if isinstance(reminder['test_date'], date):
+            reminder['test_date'] = reminder['test_date'].strftime('%Y-%m-%d')
+        else:
+            reminder['test_date'] = str(reminder['test_date'])
+    
     message = build_message(reminder, "manual")
     phone = normalize_phone(reminder.get('phone') or "")
     send_result = send_whatsapp_message(phone, message)
@@ -382,6 +430,20 @@ def edit_reminder(reminder_id):
         cursor.close()
         conn.close()
         return jsonify({"status": "updated", "id": reminder_id})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/mark_tested/<int:reminder_id>", methods=["PUT"])
+def mark_tested(reminder_id):
+    """Mark vehicle as tested"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE reminders SET is_tested = 1 WHERE id = %s", (reminder_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "marked as tested", "id": reminder_id})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -565,6 +627,65 @@ def get_template_history():
     
     return jsonify(templates)
 
+@app.route('/api/template/reset', methods=['POST'])
+def reset_template():
+    """Reset template to default"""
+    default_template = "🚗 Halo Sdr/i {{name}} (sesuai STNK)\n\n📅 Masa berlaku UJI KIR anda dengan Nomor Kendaraan: {{vehicle_number}}\n🔢 Nomor Uji : {{no_uji}}\n🚛 Jenis Kendaraan : {{jenis_kendaraan}}\n📆 Tanggal Uji Kendaraan: {{test_date}}\n\n⚠️ Mohon untuk segera melakukkan uji berkala kendaraan anda di Pengujian Kendaraan Bermotor di Dishub Kota Surakarta.\n✅ Pastikan kendaraan anda sudah siap diuji dan layak jalan.\n🔧 Pemilik wajib menjaga dan memelihara kendaraan agar selalu dalam kondisi baik dan layak jalan\n⏰ Harap hadir sesuai jadwal\n\n🙏 Terima Kasih - Dishub Kota Surakarta"
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Deactivate all templates
+    cursor.execute("UPDATE chat_templates SET is_active = 0")
+    
+    # Insert default template
+    cursor.execute("""
+        INSERT INTO chat_templates (template_name, template_content, created_at, is_active, created_by)
+        VALUES (%s, %s, %s, 1, %s)
+    """, (
+        'Default Template (Reset)',
+        default_template,
+        datetime.utcnow(),
+        'system'
+    ))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return jsonify({'status': 'ok', 'message': 'Template reset to default'}), 200
+
+# ----------------- PESAN KELUAR ROUTES -----------------
+@app.route('/pesankeluar', methods=['GET'])
+def pesankeluar_page():
+    """Analisis Pesan Keluar page"""
+    return render_template('pesankeluar.html')
+
+@app.route('/api/messages/outgoing', methods=['GET'])
+def api_messages_outgoing():
+    """Get all outgoing messages"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, phone, message, status, meta, created_at 
+            FROM messages 
+            WHERE direction = 'out' 
+            ORDER BY created_at DESC
+        """)
+        messages = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Convert datetime to string for JSON serialization
+        for msg in messages:
+            if msg.get('created_at'):
+                msg['created_at'] = msg['created_at'].isoformat()
+        
+        return jsonify(messages)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     init_db()
     
@@ -584,7 +705,10 @@ if __name__ == "__main__":
     print('  GET /api/stats')
     print('  GET /api/template')
     print('  POST /api/template')
+    print('  POST /api/template/reset')
     print('  GET /api/template/history')
+    print('  GET /pesankeluar')
+    print('  GET /api/messages/outgoing')
     
     try:
         app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

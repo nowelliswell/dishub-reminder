@@ -66,6 +66,67 @@
       margin-bottom: 1.5rem; 
     }
 
+    .stat-card {
+      border-radius: var(--radius-lg);
+      padding: 1rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 8rem;
+      background: var(--white);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 3px solid;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    .stat-card.active-card {
+      transform: translateY(-4px) scale(1.05);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+    }
+
+    .stat-card.active-card .stat-icon,
+    .stat-card.active-card .stat-label,
+    .stat-card.active-card .stat-count,
+    .stat-card.active-card .stat-desc {
+      color: var(--white) !important;
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 0.35rem;
+      font-weight: bold;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.35rem;
+    }
+
+    .stat-count {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-desc {
+      font-size: 0.7rem;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
     .status-pill { 
       display: inline-block; 
       margin-right: 0.5rem; 
@@ -130,6 +191,37 @@
       background: var(--gray-600); 
       color: var(--white); 
       border-color: var(--gray-600); 
+    }
+
+    .status-pill-info { 
+      background: #cfe2ff; 
+      color: #084298; 
+    }
+
+    .status-pill-info.active { 
+      background: #0dcaf0; 
+      color: var(--white); 
+      border-color: #0dcaf0; 
+    }
+
+    @media(max-width:768px){
+      .stat-card {
+        min-height: 7rem;
+        padding: 0.75rem 0.5rem;
+      }
+      .stat-icon { font-size: 1.75rem; }
+      .stat-count { font-size: 1.75rem; }
+      .stat-label { font-size: 0.7rem; }
+      .stat-desc { font-size: 0.65rem; }
+    }
+
+    @media(min-width:992px){
+      #statusSummary {
+        flex-wrap: nowrap !important;
+      }
+      .stat-card {
+        font-size: 0.9rem;
+      }
     }
 
     .table-card { 
@@ -236,10 +328,9 @@
       </div>
     </div>
 
-    <!-- Status pills -->
-    <div class="status-list">
-      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Filter Status</div>
-      <div id="statusPills"></div>
+    <!-- Status filter cards -->
+    <div class="row mb-4" id="statusSummary">
+      <!-- Will be filled by JavaScript -->
     </div>
 
     <!-- Table card -->
@@ -341,6 +432,7 @@
       const statusList = [
         { label: "Semua", value: "" },
         { label: "Expired", value: "Expired" },
+        { label: "Sudah Uji", value: "Sudah Uji" },
         { label: "H (today)", value: "H (today)" },
         { label: "H-1", value: "H-1" },
         { label: "H-2", value: "H-2" },
@@ -355,7 +447,6 @@
       const tableLoading = $("#tableLoading");
       const reminderTableBody = $("#reminderTable tbody");
       const emptyTableMessage = $("#emptyTableMessage");
-      const statusPills = $("#statusPills");
       const btnRefreshTop = $("#btnRefreshTop");
       const idFlagBtn = $("#idFlagBtn");
       const phoneInput = $("#phoneInput");
@@ -368,10 +459,131 @@
       // Tiny helper: toast using Swal
       function showToast(title, icon='success', t=1400){ Swal.fire({ toast:true, position:'top-end', icon, title, showConfirmButton:false, timer:t }); }
 
+      /* Render status cards */
+      function renderStatusCards(){
+        const counts = { expired: 0, sudah_uji: 0, today: 0, h1: 0, h2: 0, h3: 0 };
+
+        (window.allReminders || []).forEach(r => {
+          switch(r.status) {
+            case "Expired": counts.expired++; break;
+            case "Sudah Uji": counts.sudah_uji++; break;
+            case "H (today)": counts.today++; break;
+            case "H-1": counts.h1++; break;
+            case "H-2": counts.h2++; break;
+            case "H-3 or more": counts.h3++; break;
+          }
+        });
+
+        const total = window.allReminders.length;
+
+        const mapping = [
+          {
+            label: "Semua Data", 
+            count: total, 
+            bgColor: "#0B41D4",
+            textColor: "#0B41D4",
+            icon: "bi-database-fill",
+            description: "Total Data"
+          },
+          {
+            label: "Sudah Uji", 
+            count: counts.sudah_uji, 
+            bgColor: "#0dcaf0",
+            textColor: "#0dcaf0",
+            icon: "bi-check-circle-fill",
+            description: "Selesai Uji"
+          },
+          {
+            label: "Expired", 
+            count: counts.expired, 
+            bgColor: "#6c757d",
+            textColor: "#6c757d",
+            icon: "bi-x-circle-fill",
+            description: "Sudah Lewat"
+          },
+          {
+            label: "H (today)", 
+            count: counts.today, 
+            bgColor: "#dc3545",
+            textColor: "#dc3545",
+            icon: "bi-calendar-day",
+            description: "Hari Ini"
+          },
+          {
+            label: "H-1", 
+            count: counts.h1, 
+            bgColor: "#ffc107",
+            textColor: "#856404",
+            icon: "bi-calendar-minus",
+            description: "Besok"
+          },
+          {
+            label: "H-2", 
+            count: counts.h2, 
+            bgColor: "#0dcaf0",
+            textColor: "#055160",
+            icon: "bi-calendar-event",
+            description: "2 Hari Lagi"
+          },
+          {
+            label: "H-3+", 
+            count: counts.h3, 
+            bgColor: "#198754",
+            textColor: "#198754",
+            icon: "bi-calendar-check",
+            description: "3+ Hari"
+          }
+        ];
+
+        const container = document.getElementById("statusSummary");
+        container.innerHTML = mapping.map(m => `
+          <div class="col-md-auto col-lg flex-fill">
+            <div class="stat-card ${m.label === activeStatus || (m.label === 'Semua Data' && !activeStatus) ? 'active-card' : ''}" 
+                 data-status="${m.label}" 
+                 style="border-color: ${m.bgColor}; background: ${m.label === activeStatus || (m.label === 'Semua Data' && !activeStatus) ? m.bgColor : 'linear-gradient(135deg, ' + m.bgColor + '15 0%, ' + m.bgColor + '08 100%)'};">
+              
+              <i class="bi ${m.icon} stat-icon" style="color: ${m.label === activeStatus || (m.label === 'Semua Data' && !activeStatus) ? '#ffffff' : m.textColor};"></i>
+              
+              <div class="stat-label" style="color: ${m.label === activeStatus || (m.label === 'Semua Data' && !activeStatus) ? '#ffffff' : m.textColor};">
+                ${m.label}
+              </div>
+              
+              <div class="stat-count" style="color: ${m.label === activeStatus || (m.label === 'Semua Data' && !activeStatus) ? '#ffffff' : m.textColor};">
+                ${m.count}
+              </div>
+              
+              <div class="stat-desc" style="color: ${m.label === activeStatus || (m.label === 'Sudah Data' && !activeStatus) ? '#ffffff' : m.textColor};">
+                ${m.description}
+              </div>
+            </div>
+          </div>
+        `).join("");
+
+        // Add click events
+        document.querySelectorAll('.stat-card').forEach((card, index) => {
+          card.addEventListener('click', function() {
+            const m = mapping[index];
+            let status = this.getAttribute('data-status');
+            
+            if (status === "Semua Data") {
+              activeStatus = "";
+            } else if (status === 'H-3+') {
+              activeStatus = 'H-3 or more';
+            } else {
+              activeStatus = status;
+            }
+            
+            renderStatusCards();
+            renderTable();
+          });
+        });
+      }
+
       /* Render status pills */
       function pillClass(status){
         switch(status){
           case "Expired": return 'status-pill-secondary';
+          case "Sudah Uji": return 'status-pill-info';
           case "H (today)": return 'status-pill-danger';
           case "H-1": return 'status-pill-warning';
           case "H-2": return 'status-pill-secondary';
@@ -381,26 +593,7 @@
       }
 
       function renderStatusPills(){
-        statusPills.innerHTML = '';
-        statusList.forEach(s=>{
-          const btn = document.createElement('button');
-          btn.type='button';
-          btn.className = 'status-pill ' + pillClass(s.value) + (s.value===activeStatus ? ' active' : '');
-          btn.textContent = s.label;
-          btn.dataset.status = s.value;
-          btn.addEventListener('click', ()=>{
-            activeStatus = (activeStatus === s.value) ? '' : s.value;
-            $$('.status-pill').forEach(p=>p.classList.remove('active'));
-            const target = document.querySelector(`.status-pill[data-status="${activeStatus}"]`);
-            if(target) target.classList.add('active');
-            else document.querySelector('.status-pill[data-status=""]').classList.add('active');
-            renderTable();
-          });
-          statusPills.appendChild(btn);
-        });
-        // default active 'Semua'
-        const first = document.querySelector('.status-pill[data-status=""]');
-        if(first) first.classList.add('active');
+        // Deprecated - using cards now
       }
 
       /* Load reminders from backend */
@@ -411,6 +604,7 @@
           const res = await fetchJSON(`${API_BASE}/list?format=json`);
           if(res.ok && Array.isArray(res.data)) window.allReminders = res.data;
           else window.allReminders = [];
+          renderStatusCards();
           renderTable();
         }catch(err){
           console.error(err);
@@ -424,10 +618,11 @@
       /* Render table rows */
       function badgeClass(status){
         switch(status){
+          case "Expired": return 'badge-secondary';
+          case "Sudah Uji": return 'badge-info';
           case "H (today)": return 'badge-danger';
           case "H-1": return 'badge-warning';
           case "H-3 or more": return 'badge-success';
-          case "Expired": return 'badge-secondary';
           default: return 'badge-secondary';
         }
       }
@@ -456,12 +651,16 @@
             <td>${escapeHtml(r.phone||'-')}</td>
             <td><span class="badge-status ${badgeClass(r.status)}">${escapeHtml(r.status||'-')}</span></td>
             <td>
-              <button class="btn btn-sm btn-primary me-1 send-one" data-id="${r.id}">📤 Kirim</button>
-              <button class="btn btn-sm btn-outline-danger delete-one" data-id="${r.id}">🗑️</button>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-success sudah-uji" data-id="${r.id}" title="Tandai sudah uji"><i class="bi bi-check-circle"></i></button>
+                <button class="btn btn-sm btn-primary send-one" data-id="${r.id}" title="Kirim"><i class="bi bi-send"></i></button>
+                <button class="btn btn-sm btn-outline-danger delete-one" data-id="${r.id}" title="Hapus"><i class="bi bi-trash"></i></button>
+              </div>
             </td>
           `;
           reminderTableBody.appendChild(tr);
 
+          tr.querySelector('.sudah-uji').addEventListener('click', ()=> sudahUji(r.id));
           tr.querySelector('.send-one').addEventListener('click', ()=> sendOne(r.id));
           tr.querySelector('.delete-one').addEventListener('click', ()=> deleteOne(r.id));
         });
@@ -526,6 +725,36 @@
         }catch(err){
           Swal.fire("⚠️ Error", "Gagal mengirim reminder: " + (err.message||err), "error");
         }finally{ $$('.send-one').forEach(b=>b.disabled=false); }
+      }
+
+      /* Sudah Uji - mark vehicle as tested */
+      async function sudahUji(id){
+        const c = await Swal.fire({ 
+          title:'Tandai Sudah Uji?', 
+          text:'Kendaraan ini akan ditandai sudah melakukan uji. Data tidak akan dihapus.', 
+          icon:'question', 
+          showCancelButton:true, 
+          confirmButtonText:'Ya, sudah uji!', 
+          cancelButtonText:'Batal',
+          confirmButtonColor: '#198754'
+        });
+        if(!c.isConfirmed) return;
+        try{
+          $$('.sudah-uji').forEach(b=>b.disabled=true);
+          const res = await fetchJSON(`${API_BASE}/mark_tested/${id}`, { method:'PUT' });
+          if(res.ok){ 
+            showToast('✅ Ditandai sudah uji!', 'success'); 
+            await loadReminders(); 
+          }
+          else { 
+            Swal.fire("⚠️ Gagal", "Tidak bisa menandai sebagai sudah uji.", "error"); 
+            console.warn('sudah-uji failed', res); 
+          }
+        }catch(err){
+          Swal.fire("⚠️ Error", "Gagal menandai sudah uji: " + (err.message||err), "error");
+        }finally{ 
+          $$('.sudah-uji').forEach(b=>b.disabled=false); 
+        }
       }
 
       /* Delete one */
@@ -594,8 +823,7 @@
       /* Misc UI wiring */
       idFlagBtn && idFlagBtn.addEventListener('click', ()=> { if(phoneInput) phoneInput.value = normalizePhone(phoneInput.value); });
       btnRefreshTop && btnRefreshTop.addEventListener('click', async ()=> {
-        activeStatus = ''; $$('.status-pill').forEach(p=>p.classList.remove('active'));
-        const def = document.querySelector('.status-pill[data-status=""]'); if(def) def.classList.add('active');
+        activeStatus = '';
         showToast('Data sudah di-refresh', 'success', 1200);
         await loadReminders();
       });
@@ -611,11 +839,12 @@
       });
 
       /* Init */
-      function init(){ renderStatusPills(); loadReminders(); }
+      function init(){ loadReminders(); }
       init();
 
       // Expose for debug
       window.loadReminders = loadReminders;
+      window.sudahUji = sudahUji;
       window.sendOne = sendOne;
       window.deleteOne = deleteOne;
 

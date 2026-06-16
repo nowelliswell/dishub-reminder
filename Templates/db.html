@@ -37,13 +37,13 @@
 
     .stat-card {
       border-radius: var(--radius-lg);
-      padding: 1.25rem 1rem;
+      padding: 1rem 0.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      min-height: 9rem;
+      min-height: 8rem;
       background: var(--white);
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       border: 3px solid;
@@ -69,28 +69,28 @@
     }
 
     .stat-icon {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
+      font-size: 2rem;
+      margin-bottom: 0.35rem;
       font-weight: bold;
     }
 
     .stat-label {
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.35rem;
     }
 
     .stat-count {
-      font-size: 2.5rem;
+      font-size: 2rem;
       font-weight: 800;
       line-height: 1;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.2rem;
     }
 
     .stat-desc {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
       opacity: 0.8;
     }
@@ -128,11 +128,31 @@
     @media(max-width:768px){
       .header-title { font-size: 1.5rem; }
       .search-input { width: 100%; margin-bottom: 0.75rem; }
+      
+      /* Stack stat cards on mobile */
+      .stat-card {
+        min-height: 7rem;
+        padding: 0.75rem 0.5rem;
+      }
+      .stat-icon { font-size: 1.75rem; }
+      .stat-count { font-size: 1.75rem; }
+      .stat-label { font-size: 0.7rem; }
+      .stat-desc { font-size: 0.65rem; }
     }
 
     @media(max-width:576px){
       .header-title { font-size: 1.25rem; }
       body { padding: 1.5rem 1rem; }
+    }
+    
+    /* Ensure cards stay in one row on desktop */
+    @media(min-width:992px){
+      #statusSummary {
+        flex-wrap: nowrap !important;
+      }
+      .stat-card {
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
@@ -160,11 +180,11 @@
           <button id="btnEditChat" class="btn btn-success btn-sm" onclick="window.location.href='/edit_chat'">
             <i class="bi bi-chat-text"></i> Edit Chat
           </button>
-          <button id="btnRefresh" class="btn btn-secondary btn-sm">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
+          <button id="btnPesanKeluar" class="btn btn-outline-primary btn-sm" onclick="window.location.href='/pesankeluar'">
+            <i class="bi bi-send-fill"></i> Pesan Keluar
           </button>
-          <button id="btnDashboard" class="btn btn-primary btn-sm" onclick="window.location.href='/dashboard'">
-            <i class="bi bi-bar-chart"></i> Monitoring
+          <button id="btnRefresh" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-fill"></i> Refresh
           </button>
           <button id="btnLogout" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-box-arrow-right"></i> Logout
@@ -297,11 +317,12 @@ async function loadSummary() {
   const res = await fetch("/list?format=json");
   const data = await res.json();
 
-  const counts = { expired: 0, today: 0, h1: 0, h2: 0, h3: 0 };
+  const counts = { expired: 0, sudah_uji: 0, today: 0, h1: 0, h2: 0, h3: 0 };
 
   data.forEach(r => {
     switch(r.status) {
       case "Expired": counts.expired++; break;
+      case "Sudah Uji": counts.sudah_uji++; break;
       case "H (today)": counts.today++; break;
       case "H-1": counts.h1++; break;
       case "H-2": counts.h2++; break;
@@ -317,6 +338,14 @@ async function loadSummary() {
       textColor: "#0B41D4",
       icon: "bi-database-fill",
       description: "Total Data"
+    },
+    {
+      label: "Sudah Uji", 
+      count: counts.sudah_uji, 
+      bgColor: "#0dcaf0",
+      textColor: "#0dcaf0",
+      icon: "bi-check-circle-fill",
+      description: "Selesai Uji"
     },
     {
       label: "Expired", 
@@ -362,7 +391,7 @@ async function loadSummary() {
 
   const container = document.getElementById("statusSummary");
   container.innerHTML = mapping.map(m => `
-    <div class="col-md-2">
+    <div class="col-md-auto col-lg flex-fill">
       <div class="stat-card" data-status="${m.label}" 
            style="border-color: ${m.bgColor}; background: linear-gradient(135deg, ${m.bgColor}15 0%, ${m.bgColor}08 100%);">
         
@@ -593,6 +622,7 @@ loadSummary();
               let cls = 'badge-secondary';
               switch (s) {
                 case 'Expired': cls = 'badge-secondary'; break;
+                case 'Sudah Uji': cls = 'badge-info'; break;
                 case 'H (today)': cls = 'badge-danger'; break;
                 case 'H-1': cls = 'badge-warning'; break;
                 case 'H-3 or more': cls = 'badge-success'; break;

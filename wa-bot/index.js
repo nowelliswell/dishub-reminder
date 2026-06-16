@@ -59,7 +59,9 @@ async function connectToWhatsApp() {
         printQRInTerminal: false,
         browser: ["Dishub Reminder", "Chrome", "1.0.0"],
         syncFullHistory: false,
-        shouldSyncHistoryMessage: false,
+        connectTimeoutMs: 60000, // Increase connection timeout to 60 seconds
+        defaultQueryTimeoutMs: 60000, // Increase query timeout to 60 seconds
+        keepAliveIntervalMs: 30000, // Keep alive every 30 seconds
       });
     } catch (socketError) {
       console.error("❌ Error creating WhatsApp socket (init queries failed):", socketError.message);
