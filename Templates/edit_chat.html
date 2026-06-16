@@ -100,6 +100,12 @@
         <div class="text-muted">Kelola template pesan pengingat uji kendaraan</div>
       </div>
       <div class="col-auto">
+        <button id="btnPesanKeluar" class="btn btn-outline-primary me-2" title="Analisis Pesan Keluar" onclick="window.location.href='/pesankeluar'">
+          <i class="bi bi-send-fill me-2"></i>Pesan Keluar
+        </button>
+        <button id="btnDashboard" class="btn btn-outline-success me-2" title="Lihat Dashboard" onclick="window.location.href='/dashboard'">
+          <i class="bi bi-speedometer2 me-2"></i>Dashboard
+        </button>
         <button id="btnBack" class="btn btn-secondary" onclick="window.location.href='/list'">
           <i class="bi bi-arrow-left me-2"></i>Kembali
         </button>
@@ -355,26 +361,57 @@
     });
 
     // Reset to default
-    btnReset.addEventListener('click', function() {
-      Swal.fire({
+    btnReset.addEventListener('click', async function() {
+      const result = await Swal.fire({
         title: 'Reset Template?',
-        text: 'Template akan dikembalikan ke default. Lanjutkan?',
+        text: 'Template akan dikembalikan ke default dan disimpan ke database. Lanjutkan?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Ya, Reset',
         cancelButtonText: 'Batal'
-      }).then((result) => {
-        if (result.isConfirmed) {
+      });
+      
+      if (result.isConfirmed) {
+        try {
+          // Call backend to reset template
+          const response = await fetch('/api/template/reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.status === 'ok') {
+            // Load the reset template from database
+            await loadTemplate();
+            
+            Swal.fire({
+              icon: 'success',
+              title: 'Template direset!',
+              text: 'Template berhasil dikembalikan ke default',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          } else {
+            throw new Error(data.message || 'Gagal reset template');
+          }
+        } catch (error) {
+          console.error('Reset error:', error);
+          // Fallback: just set to default locally
           templateEditor.value = DEFAULT_TEMPLATE;
           updatePreview();
+          
           Swal.fire({
-            icon: 'success',
-            title: 'Template direset',
-            timer: 1500,
+            icon: 'info',
+            title: 'Template direset (lokal)',
+            text: 'Template direset di editor, klik "Simpan Template" untuk menyimpan ke database',
+            timer: 2000,
             showConfirmButton: false
           });
         }
-      });
+      }
     });
 
     // Test send
@@ -444,13 +481,20 @@
             // Get current template
             const currentTemplate = templateEditor.value;
             
-            // Build test message with sample data
+            // Get data from preview inputs (user-editable)
+            const previewNama = document.getElementById('previewNama').value || 'Test User';
+            const previewNomor = document.getElementById('previewNomor').value || 'B 1234 XYZ';
+            const previewNoUji = document.getElementById('previewNoUji').value || 'TEST-001';
+            const previewJenis = document.getElementById('previewJenis').value || 'Truck';
+            const previewTanggal = document.getElementById('previewTanggal').value || new Date().toISOString().split('T')[0];
+            
+            // Build test message with data from preview inputs - use proper variable format
             const testMessage = currentTemplate
-              .replace(/{nama}/g, 'Test User')
-              .replace(/{nomor_kendaraan}/g, 'B 1234 XYZ')
-              .replace(/{no_uji}/g, 'TEST-001')
-              .replace(/{jenis_kendaraan}/g, 'Truck')
-              .replace(/{tanggal_uji}/g, new Date().toISOString().split('T')[0]);
+              .replace(/\{\{name\}\}/g, previewNama)
+              .replace(/\{\{vehicle_number\}\}/g, previewNomor)
+              .replace(/\{\{no_uji\}\}/g, previewNoUji)
+              .replace(/\{\{jenis_kendaraan\}\}/g, previewJenis)
+              .replace(/\{\{test_date\}\}/g, previewTanggal);
 
             // Normalize phone number (add 62 prefix if needed)
             let normalizedPhone = result.value;
@@ -475,6 +519,10 @@
             const data = await response.json();
 
             if (response.ok && data.success) {
+              // Get preview data for display
+              const previewNama = document.getElementById('previewNama').value;
+              const previewNomor = document.getElementById('previewNomor').value;
+              
               Swal.fire({
                 icon: 'success',
                 title: 'Pesan Terkirim!',
@@ -482,8 +530,13 @@
                   <div style="text-align: left; padding: 10px;">
                     <p style="margin: 10px 0;"><strong>Nomor Tujuan:</strong> ${normalizedPhone}</p>
                     <p style="margin: 10px 0;"><strong>Status:</strong> <span style="color: #1DB954;">✓ Berhasil</span></p>
-                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px;">
-                      <strong>Catatan:</strong> Pesan test telah dikirim menggunakan template aktif dengan data contoh
+                    <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 13px;">
+                      <strong>Data yang dikirim:</strong><br>
+                      • Nama: ${previewNama}<br>
+                      • Kendaraan: ${previewNomor}
+                    </div>
+                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px;">
+                      <strong>Catatan:</strong> Pesan test menggunakan data dari form preview
                     </div>
                   </div>
                 `,

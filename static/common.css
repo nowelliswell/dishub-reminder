@@ -72,6 +72,11 @@ body {
   color: #475569;
 }
 
+.badge-info {
+  background: #cfe2ff;
+  color: #084298;
+}
+
 /* Responsive Utilities */
 @media (max-width: 768px) {
   .card-surface {

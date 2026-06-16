@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+ENV/
+env/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+reminders.db
+
+# Environment variables
+.env
+.env.local
+
+# WhatsApp Auth (SENSITIVE)
+wa-bot/auth_info/
+auth_info/
+session/
+*.session
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Uploads (user data)
+static/uploads/*.png
+static/uploads/*.jpg
+static/uploads/*.jpeg
+!static/uploads/.gitkeep
