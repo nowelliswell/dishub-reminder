@@ -232,7 +232,25 @@ python migrate_to_mysql.py
 
 ## 🎯 Menjalankan Aplikasi
 
-### Cara 1: Manual (Development)
+### ⚠️ PENTING: Pilih Salah Satu Cara!
+
+**JANGAN jalankan `node index.js` DAN `pm2 start` bersamaan!** Ini akan menyebabkan conflict karena kedua bot rebutan session WhatsApp yang sama.
+
+---
+
+### Cara 1: Manual dengan Node.js (Recommended untuk Development)
+
+**Kelebihan:**
+- ✅ Mudah debugging
+- ✅ Log real-time di terminal
+- ✅ Cepat stop/restart (Ctrl+C)
+
+**Kekurangan:**
+- ❌ Harus buka terminal terus
+- ❌ Crash = bot mati
+- ❌ Tutup terminal = bot mati
+
+**Langkah:**
 
 #### Terminal 1 - WhatsApp Bot (Port 3000)
 
@@ -247,6 +265,7 @@ Output yang diharapkan:
 🔗 Akses manual: http://localhost:3000
 🔄 Attempting to connect to WhatsApp...
 📱 QR baru tersedia (akan dikirim ke frontend).
+✅ WhatsApp Connected!
 ```
 
 #### Terminal 2 - Flask Backend (Port 5000)
@@ -272,32 +291,89 @@ Output yang diharapkan:
  * Running on http://0.0.0.0:5000
 ```
 
-### Cara 2: Production dengan PM2
+---
+
+### Cara 2: Production dengan PM2 (Recommended untuk Production)
+
+**Kelebihan:**
+- ✅ Auto-restart kalau crash
+- ✅ Jalan di background (bisa tutup terminal)
+- ✅ Monitoring CPU/memory
+- ✅ Auto-start saat server reboot
+- ✅ Scheduled restart (setiap 6 jam untuk refresh session)
+- ✅ Log tersimpan otomatis
+
+**Kekurangan:**
+- ❌ Setup lebih kompleks
+- ❌ Butuh install PM2 global
+
+**Langkah:**
+
+#### Step 1: Install PM2
 
 ```bash
-# Install PM2 globally
 npm install -g pm2
-
-# Start WhatsApp Bot
-cd wa-bot
-pm2 start index.js --name "wa-bot"
-
-# Start Flask App
-cd ..
-pm2 start --name "flask-app" --interpreter python3 -- whatsapp_reminder_app_mysql.py
-
-# Lihat status
-pm2 status
-
-# Lihat logs
-pm2 logs
-
-# Save configuration
-pm2 save
-pm2 startup
 ```
 
-### Cara 3: Menggunakan Screen (Linux)
+#### Step 2: Start WhatsApp Bot dengan PM2
+
+```bash
+cd wa-bot
+pm2 start ecosystem.config.cjs
+```
+
+#### Step 3: Cek Status
+
+```bash
+pm2 list
+```
+
+Output:
+```
+┌────┬─────────┬─────────┬──────┬────────┬─────────┬──────────┐
+│ id │ name    │ mode    │ ↺    │ status │ cpu     │ memory   │
+├────┼─────────┼─────────┼──────┼────────┼─────────┼──────────┤
+│ 0  │ wa-bot  │ cluster │ 0    │ online │ 2.3%    │ 95.2mb   │
+└────┴─────────┴─────────┴──────┴────────┴─────────┴──────────┘
+```
+
+#### Step 4: Lihat Logs
+
+```bash
+# Real-time logs
+pm2 logs wa-bot
+
+# Last 100 lines
+pm2 logs wa-bot --lines 100
+
+# Error logs only
+pm2 logs wa-bot --err
+```
+
+#### Step 5: Save & Setup Auto-Start
+
+```bash
+# Save current process list
+pm2 save
+
+# Setup auto-start on boot
+pm2 startup
+# Follow the command shown!
+```
+
+#### Step 6: Start Flask App
+
+```bash
+cd ..
+# Untuk MySQL:
+python whatsapp_reminder_app_mysql.py
+# Atau pakai PM2 juga untuk Flask:
+pm2 start whatsapp_reminder_app_mysql.py --interpreter python3 --name flask-app
+```
+
+---
+
+### Cara 3: Menggunakan Screen (Linux Only)
 
 ```bash
 # Terminal 1 - WhatsApp Bot
@@ -318,6 +394,120 @@ screen -r flask-app
 # List semua screen
 screen -ls
 ```
+
+---
+
+### 🔥 PM2 Commands Lengkap
+
+```bash
+# Start/Stop/Restart
+pm2 start ecosystem.config.cjs    # Start bot
+pm2 stop wa-bot                   # Stop bot
+pm2 restart wa-bot                # Restart bot
+pm2 delete wa-bot                 # Remove from PM2
+pm2 stop all                      # Stop semua apps
+pm2 delete all                    # Remove semua apps
+
+# Monitoring
+pm2 list                          # List semua apps
+pm2 monit                         # Dashboard real-time
+pm2 logs wa-bot                   # Streaming logs
+pm2 logs wa-bot --lines 50        # Last 50 lines
+pm2 describe wa-bot               # Detail info
+
+# Management
+pm2 save                          # Save process list
+pm2 resurrect                     # Restore saved apps
+pm2 startup                       # Setup auto-start
+pm2 unstartup                     # Remove auto-start
+pm2 update                        # Update PM2
+pm2 flush wa-bot                  # Clear logs
+
+# Logs location
+# Windows: C:\Users\<Username>\.pm2\logs\
+# Linux: ~/.pm2/logs/
+```
+
+---
+
+### 📊 PM2 vs Node.js Manual
+
+| Aspek | `node index.js` | `pm2 start` |
+|-------|-----------------|-------------|
+| **Fungsi** | Jalanin bot | Jalanin bot |
+| **Background** | ❌ Foreground | ✅ Background |
+| **Auto-restart** | ❌ Crash = mati | ✅ Auto-restart |
+| **Monitoring** | ❌ Tidak ada | ✅ Dashboard (`pm2 monit`) |
+| **Logs** | ❌ Terminal only | ✅ Tersimpan di file |
+| **Auto-start on boot** | ❌ Manual | ✅ Auto (`pm2 startup`) |
+| **Scheduled restart** | ❌ Manual | ✅ Cron (setiap 6 jam) |
+| **Memory limit** | ❌ Unlimited | ✅ Auto-restart jika > 500MB |
+| **Multi-instance** | ❌ Tidak | ✅ Load balancing |
+| **Untuk** | Development | Production |
+
+---
+
+### 🎯 Rekomendasi
+
+**Development/Testing:**
+```bash
+node index.js
+```
+
+**Production:**
+```bash
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup
+```
+
+**Debugging issue:**
+```bash
+# Stop PM2 dulu
+pm2 stop wa-bot
+
+# Jalankan manual untuk lihat log detail
+node index.js
+```
+
+**Switching dari Manual ke PM2:**
+```bash
+# Stop manual (Ctrl+C di terminal)
+# Lalu start PM2
+pm2 start ecosystem.config.cjs
+```
+
+**Switching dari PM2 ke Manual:**
+```bash
+# Stop PM2
+pm2 stop wa-bot
+pm2 delete wa-bot
+
+# Start manual
+node index.js
+```
+
+---
+
+### ⚠️ CATATAN PENTING
+
+**Jangan pernah jalankan keduanya bersamaan!**
+
+```bash
+# ❌ SALAH - Akan conflict!
+Terminal 1: node index.js
+Terminal 2: pm2 start ecosystem.config.cjs
+
+# ✅ BENAR - Pilih salah satu
+node index.js ATAU pm2 start ecosystem.config.cjs
+```
+
+Kalau kamu jalankan 2 bot bersamaan, akan muncul error:
+```
+⚠️ Koneksi terputus: 440 Stream Errored (conflict)
+```
+
+Solusinya: Stop salah satu, biarkan hanya 1 bot yang jalan.
 
 ## 🌐 Akses Aplikasi
 
@@ -540,6 +730,115 @@ Response:
 
 ## 🐛 Troubleshooting
 
+### Problem: "Waiting for this message" di WhatsApp
+
+**Penyebab:**
+- Session WhatsApp tidak sinkron (PreKey error)
+- Multi-device conflict (ada device lain yang login bersamaan)
+- Network latency saat handshake encryption
+
+**Solusi Permanen:**
+
+1. **Upgrade Baileys ke versi terbaru:**
+```bash
+cd wa-bot
+npm install @whiskeysockets/baileys@latest
+```
+
+2. **Implementasi Retry Logic (Sudah diterapkan):**
+- Bot akan auto-retry 3x dengan delay 2 detik
+- Encryption error akan retry dengan delay 5 detik
+- Pre-send validation untuk memastikan koneksi siap
+
+3. **Rate Limiting (Sudah diterapkan):**
+- Delay 3 detik antar pesan untuk avoid spam
+- Timeout dinaikkan ke 60 detik
+
+4. **Auto-Repair Session (Sudah diterapkan):**
+- Bot akan auto-refresh encryption keys setelah 5 error berturut-turut
+- Force reconnect untuk refresh session
+
+5. **Reset Auth jika masih gagal:**
+```bash
+# Stop bot
+pm2 stop wa-bot
+# atau Ctrl+C jika manual
+
+# Hapus session lama
+cd wa-bot
+rm -rf auth_info  # Linux/Mac
+# atau
+rmdir /s /q auth_info  # Windows
+
+# Start ulang
+node index.js
+# Scan QR dari Linked Devices di HP (BUKAN WhatsApp Web biasa!)
+```
+
+### Problem: Conflict Error (440 Stream Errored)
+
+**Penyebab:**
+Ada 2+ koneksi WhatsApp aktif bersamaan menggunakan session yang sama.
+
+**Diagnosis:**
+```bash
+# Windows - Cek berapa bot yang jalan
+tasklist | findstr node.exe
+
+# Linux/Mac
+ps aux | grep node
+```
+
+**Solusi:**
+
+1. **Pastikan hanya 1 bot yang jalan:**
+```bash
+# Stop semua process
+pm2 stop all
+pm2 delete all
+
+# Kill manual process (Windows)
+taskkill /F /PID <PID_NUMBER>
+
+# Kill manual process (Linux/Mac)
+kill -9 <PID_NUMBER>
+
+# Cek bersih
+tasklist | findstr node.exe  # Windows
+ps aux | grep node           # Linux/Mac
+# Harusnya kosong!
+```
+
+2. **Logout semua Linked Devices:**
+- Buka WhatsApp di HP
+- Menu → **Linked Devices**
+- **Logout SEMUA device** yang ada
+- Tunggu 30 detik
+
+3. **Start 1 bot saja:**
+```bash
+# Pilih salah satu:
+
+# Option A: Manual (untuk development/debugging)
+cd wa-bot
+node index.js
+
+# Option B: PM2 (untuk production)
+pm2 start ecosystem.config.cjs
+```
+
+4. **Scan QR dengan benar:**
+- Buka http://localhost:3000
+- Scan dari **Linked Devices** di HP (BUKAN WhatsApp Web!)
+- Scan **1x saja**, jangan berkali-kali
+
+**Aturan Ketat:**
+- ❌ JANGAN jalankan `node index.js` DAN `pm2 start` bersamaan
+- ❌ JANGAN buka multiple tabs localhost:3000
+- ❌ JANGAN scan QR berkali-kali
+- ❌ JANGAN buka WhatsApp Web di browser lain saat bot jalan
+- ✅ Pilih 1 cara saja: manual ATAU PM2
+
 ### Problem: WhatsApp Bot tidak connect
 
 **Solusi:**
@@ -603,6 +902,25 @@ npm install
 3. Atau hapus template dari database:
 ```sql
 DELETE FROM chat_templates WHERE is_active = 1;
+```
+
+### Problem: QR Code Spam di Log
+
+**Penyebab:**
+Event QR triggered multiple kali sebelum scan.
+
+**Solusi:**
+Sudah di-fix dengan debounce logic. QR hanya akan muncul 1x di log. Abaikan saja atau tunggu sampai scan QR.
+
+### Problem: PM2 tidak ditemukan
+
+**Solusi:**
+```bash
+# Install PM2 global
+npm install -g pm2
+
+# Verifikasi instalasi
+pm2 --version
 ```
 
 ## 🔒 Security Best Practices

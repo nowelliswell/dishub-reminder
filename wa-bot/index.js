@@ -2,7 +2,7 @@ import express from "express";
 import fs from "fs-extra";
 import bodyParser from "body-parser";
 import qrcode from "qrcode-terminal";
-import baileys, { DisconnectReason, useMultiFileAuthState } from "@whiskeysockets/baileys";
+import makeWASocket, { DisconnectReason, useMultiFileAuthState } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import cors from "cors";
 import path from "path";
@@ -44,13 +44,14 @@ let lastConnectionUpdate = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const BASE_RECONNECT_DELAY = 5000; // 5 seconds
+let encryptionErrorCount = 0; // Track encryption errors
+const MAX_ENCRYPTION_ERRORS = 5; // Max errors before force repair
 
 // === CONNECT TO WHATSAPP ===
 async function connectToWhatsApp() {
   try {
     console.log("🔄 Attempting to connect to WhatsApp... (attempt", reconnectAttempts + 1, ")");
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
-    const { makeWASocket } = baileys;
 
     // Add try-catch around makeWASocket to handle init queries errors
     try {
@@ -93,14 +94,19 @@ async function connectToWhatsApp() {
       try {
         const { connection, lastDisconnect, qr } = update;
         lastConnectionUpdate = update;
+        
+        // ✅ DEBUG: Log semua connection state
+        console.log("🔔 Connection update:", { connection, hasQR: !!qr, isConnected });
 
-        if (qr) {
+        // ✅ Handle QR - only set once and log once
+        if (qr && !currentQR && !isConnected) {
           currentQR = qr;
           console.log("📱 QR baru tersedia (akan dikirim ke frontend).");
         }
 
         if (connection === "close") {
           isConnected = false;
+          currentQR = null; // Clear QR on disconnect
           const boomError = new Boom(lastDisconnect?.error);
           const reason = boomError?.output?.statusCode;
           const shouldReconnect = reason !== DisconnectReason.loggedOut;
@@ -161,6 +167,9 @@ async function connectToWhatsApp() {
         const msg = m.messages[0];
         if (!msg.message) return;
 
+        // Reset encryption error count on successful message
+        encryptionErrorCount = 0;
+
         // proses pesan di sini
         console.log('Pesan diterima dari:', msg.key.remoteJid);
 
@@ -172,10 +181,30 @@ async function connectToWhatsApp() {
           return; // Skip processing this message, don't crash
         }
 
-        // Handle PreKey errors
-        if (err.message?.includes('PreKey') || err.name === 'PreKeyError') {
-          console.warn('⚠️ PreKey error detected - message will be retried automatically');
-          return; // Let Baileys handle the retry
+        // Handle PreKey errors with auto-repair
+        if (err.message?.includes('PreKey') || err.name === 'PreKeyError' || 
+            err.message?.includes('decrypt') || err.message?.includes('Invalid')) {
+          encryptionErrorCount++;
+          console.warn(`⚠️ Encryption error detected (${encryptionErrorCount}/${MAX_ENCRYPTION_ERRORS}) - message will be retried`);
+          
+          // Auto-repair if too many encryption errors
+          if (encryptionErrorCount >= MAX_ENCRYPTION_ERRORS) {
+            console.error('❌ Too many encryption errors! Force refreshing session...');
+            encryptionErrorCount = 0;
+            
+            // Force reconnect to refresh keys
+            if (sock) {
+              try {
+                await sock.ws.close();
+              } catch (e) {}
+            }
+            
+            setTimeout(() => {
+              console.log('🔄 Restarting connection to refresh encryption keys...');
+              connectToWhatsApp();
+            }, 3000);
+          }
+          return;
         }
 
         console.error('❌ Error saat proses pesan:', err.message);
@@ -225,6 +254,29 @@ connectToWhatsApp();
 
 // === API ===
 
+// Helper function to validate connection before sending
+async function validateConnectionBeforeSend(jid) {
+  try {
+    // Check if socket exists and connected
+    if (!sock || !isConnected) {
+      throw new Error('Not connected');
+    }
+    
+    // Try to fetch user status as connection test
+    await sock.fetchStatus(jid).catch(() => {
+      // If fetch fails, it's okay, user might have hidden status
+    });
+    
+    // Small delay to ensure keys are synced
+    await new Promise(r => setTimeout(r, 500));
+    
+    return true;
+  } catch (err) {
+    console.warn('⚠️ Connection validation failed:', err.message);
+    return false;
+  }
+}
+
 // ✅ Ambil QR untuk frontend
 app.get("/qr", (req, res) => {
   try {
@@ -254,10 +306,14 @@ app.get("/qr-stream", async (req, res) => {
 
     const sendQR = () => {
       try {
+        // ✅ FIX: Jangan kirim QR lagi kalau sudah connected
+        if (isConnected) {
+          res.write(`data: ${JSON.stringify({ connected: true })}\n\n`);
+          return; // Stop sending QR
+        }
+        
         if (currentQR) {
           res.write(`data: ${JSON.stringify({ qr: currentQR })}\n\n`);
-        } else if (isConnected) {
-          res.write(`data: ${JSON.stringify({ connected: true })}\n\n`);
         }
       } catch (err) {
         console.error("Error sending QR data:", err);
@@ -315,6 +371,12 @@ app.post("/send", async (req, res) => {
 
     const jid = formatPhoneNumber(phone);
     
+    // ✅ VALIDATE CONNECTION FIRST
+    const isValid = await validateConnectionBeforeSend(jid);
+    if (!isValid) {
+      return res.status(503).json({ error: "Connection not ready. Please wait a moment and try again." });
+    }
+    
     // ✅ RETRY LOGIC (3x attempts dengan delay)
     let attempts = 0;
     const maxAttempts = 3;
@@ -335,9 +397,17 @@ app.post("/send", async (req, res) => {
         lastError = err;
         console.log(`⚠️ Attempt ${attempts}/${maxAttempts} failed:`, err.message);
         
-        // Delay sebelum retry (kecuali attempt terakhir)
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 detik
+        // If encryption error, wait longer before retry
+        if (err.message?.includes('encrypt') || err.message?.includes('PreKey') || err.message?.includes('Invalid')) {
+          console.log('🔐 Encryption error detected, waiting 5s before retry...');
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 detik untuk encryption error
+          }
+        } else {
+          // Delay sebelum retry (kecuali attempt terakhir)
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 detik
+          }
         }
       }
     }

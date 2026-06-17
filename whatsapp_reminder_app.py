@@ -150,13 +150,13 @@ def send_whatsapp_message(phone, message_text):
     """Kirim ke Node API. Return dict berisi status dan info. Juga log ke DB messages."""
     phone_norm = normalize_phone(phone)
     try:
-        # ✅ DELAY untuk avoid spam (rate limiting)
+        # ✅ DELAY untuk avoid spam (rate limiting) - increase dari 1.5 ke 3 detik
         import time
-        time.sleep(1.5)  # 1.5 detik antar pesan
+        time.sleep(3)  # 3 detik antar pesan untuk stability
         
         payload = {"phone": phone_norm, "message": message_text}
         print(f"📤 Sending to Node API {NODE_API} payload={payload}")
-        r = requests.post(NODE_API, json=payload, timeout=10)
+        r = requests.post(NODE_API, json=payload, timeout=15)  # Increase timeout ke 15 detik
         print("📥 Response:", r.status_code, r.text)
         try:
             resp_json = r.json()
