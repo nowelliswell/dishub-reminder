@@ -58,10 +58,19 @@ async function connectToWhatsApp() {
         auth: state,
         printQRInTerminal: false,
         browser: ["Dishub Reminder", "Chrome", "1.0.0"],
-        syncFullHistory: false,
+        syncFullHistory: false, // Disable full history sync
         connectTimeoutMs: 60000, // Increase connection timeout to 60 seconds
         defaultQueryTimeoutMs: 60000, // Increase query timeout to 60 seconds
         keepAliveIntervalMs: 30000, // Keep alive every 30 seconds
+        retryRequestDelayMs: 2000, // Delay between retries
+        maxMsgRetryCount: 5, // Max retry for sending messages
+        // ✅ Disable history sync untuk avoid timeout
+        shouldSyncHistoryMessage: () => false,
+        getMessage: async (key) => {
+          return {
+            conversation: 'Message retry'
+          };
+        }
       });
     } catch (socketError) {
       console.error("❌ Error creating WhatsApp socket (init queries failed):", socketError.message);
@@ -161,6 +170,12 @@ async function connectToWhatsApp() {
             err.message?.includes('decode-wa-message')) {
           console.warn('⚠️ Unknown message type encountered - skipping message processing');
           return; // Skip processing this message, don't crash
+        }
+
+        // Handle PreKey errors
+        if (err.message?.includes('PreKey') || err.name === 'PreKeyError') {
+          console.warn('⚠️ PreKey error detected - message will be retried automatically');
+          return; // Let Baileys handle the retry
         }
 
         console.error('❌ Error saat proses pesan:', err.message);
@@ -299,9 +314,37 @@ app.post("/send", async (req, res) => {
       return res.status(503).json({ error: "WhatsApp belum terkoneksi. Scan QR dulu." });
 
     const jid = formatPhoneNumber(phone);
-    await sock.sendMessage(jid, { text: message });
-
-    res.json({ success: true, to: jid, message });
+    
+    // ✅ RETRY LOGIC (3x attempts dengan delay)
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError;
+    
+    while (attempts < maxAttempts) {
+      try {
+        await sock.sendMessage(jid, { text: message });
+        console.log(`✅ Message sent successfully to ${jid} (attempt ${attempts + 1})`);
+        return res.json({ 
+          success: true, 
+          to: jid, 
+          message, 
+          attempts: attempts + 1 
+        });
+      } catch (err) {
+        attempts++;
+        lastError = err;
+        console.log(`⚠️ Attempt ${attempts}/${maxAttempts} failed:`, err.message);
+        
+        // Delay sebelum retry (kecuali attempt terakhir)
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 detik
+        }
+      }
+    }
+    
+    // Kalau semua attempts gagal
+    throw new Error(`Failed after ${maxAttempts} attempts: ${lastError.message}`);
+    
   } catch (err) {
     console.error("❌ Gagal kirim WA:", err);
     res.status(500).json({ error: err.toString() });
