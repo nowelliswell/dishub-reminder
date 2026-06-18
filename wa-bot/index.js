@@ -65,8 +65,13 @@ async function connectToWhatsApp() {
         keepAliveIntervalMs: 30000, // Keep alive every 30 seconds
         retryRequestDelayMs: 2000, // Delay between retries
         maxMsgRetryCount: 5, // Max retry for sending messages
-        // ✅ Disable history sync untuk avoid timeout
+        // ✅ Disable ALL sync features to prevent missing key errors
         shouldSyncHistoryMessage: () => false,
+        emitOwnEvents: false, // Don't emit events for own messages
+        markOnlineOnConnect: true, // Mark as online when connected
+        fireInitQueries: false, // Don't fire initial queries to avoid sync errors
+        // ✅ Ignore status broadcast to prevent PreKey errors
+        shouldIgnoreJid: (jid) => jid === 'status@broadcast',
         getMessage: async (key) => {
           return {
             conversation: 'Message retry'
@@ -167,6 +172,11 @@ async function connectToWhatsApp() {
         const msg = m.messages[0];
         if (!msg.message) return;
 
+        // ✅ FILTER: Ignore status broadcast messages completely
+        if (msg.key.remoteJid === 'status@broadcast') {
+          return; // Silently ignore status messages - they cause encryption errors but are not needed
+        }
+
         // Reset encryption error count on successful message
         encryptionErrorCount = 0;
 
@@ -174,6 +184,12 @@ async function connectToWhatsApp() {
         console.log('Pesan diterima dari:', msg.key.remoteJid);
 
       } catch (err) {
+        // ✅ FILTER: Suppress errors from status broadcast
+        const sender = m.messages[0]?.key?.remoteJid;
+        if (sender === 'status@broadcast') {
+          return; // Silently ignore status broadcast errors
+        }
+
         // Enhanced error handling for message processing
         if (err.message?.includes('Unknown message type') ||
             err.message?.includes('decode-wa-message')) {
@@ -181,7 +197,7 @@ async function connectToWhatsApp() {
           return; // Skip processing this message, don't crash
         }
 
-        // Handle PreKey errors with auto-repair
+        // Handle PreKey errors with auto-repair (only for non-status messages)
         if (err.message?.includes('PreKey') || err.name === 'PreKeyError' || 
             err.message?.includes('decrypt') || err.message?.includes('Invalid')) {
           encryptionErrorCount++;
