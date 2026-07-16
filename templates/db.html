@@ -507,6 +507,7 @@ loadSummary();
       const btnLogout = document.getElementById("btnLogout");
       if (btnLogout) {
         btnLogout.addEventListener("click", () => {
+          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
           Swal.fire({
             title: 'Logout?',
             text: 'Anda akan keluar dari Dashboard',
@@ -523,7 +524,7 @@ loadSummary();
                 timer: 1200
               });
               setTimeout(() => {
-                window.location.href = "http://127.0.0.1:5000/"; // redirect ke home
+                window.location.href = isLocal ? "http://127.0.0.1:5000/" : "/";
               }, 1300);
             }
           });

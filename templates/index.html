@@ -818,7 +818,7 @@
       /* Logout */
       function logout(){
         Swal.fire({ title:'Keluar?', text:'Anda akan keluar dari Dashboard', icon:'warning', showCancelButton:true, confirmButtonText:'Ya, Keluar', cancelButtonText:'Batal' })
-        .then(result => { if(result.isConfirmed){ Swal.fire({ icon:'success', title:'Berhasil Keluar', showConfirmButton:false, timer:1200 }); setTimeout(()=>{ window.location.href = "http://127.0.0.1:5000/"; },1300); } });
+        .then(result => { if(result.isConfirmed){ Swal.fire({ icon:'success', title:'Berhasil Keluar', showConfirmButton:false, timer:1200 }); setTimeout(()=>{ window.location.href = isLocal ? "http://127.0.0.1:5000/" : "/"; },1300); } });
       }
 
       /* Misc UI wiring */
