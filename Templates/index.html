@@ -401,8 +401,9 @@
   <script>
     (function(){
       // Base endpoints (configured earlier)
-      const API_BASE = "http://127.0.0.1:5000";
-      const RESET_BASE = "http://127.0.0.1:3000";
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const API_BASE = isLocal ? "http://127.0.0.1:5000" : "";
+      const RESET_BASE = isLocal ? "http://127.0.0.1:3000" : "";
 
       // Tiny selectors
       const $ = (s, ctx=document) => ctx.querySelector(s);

@@ -2,7 +2,7 @@ import express from "express";
 import fs from "fs-extra";
 import bodyParser from "body-parser";
 import qrcode from "qrcode-terminal";
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from "@whiskeysockets/baileys";
+import { makeWASocket, DisconnectReason, useMultiFileAuthState } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import cors from "cors";
 import path from "path";
@@ -36,6 +36,19 @@ app.get("/", (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// In-memory message store to handle WhatsApp retry requests
+const sentMessagesStore = new Map();
+
+function saveSentMessage(key, messageContent) {
+  const msgId = key.id;
+  sentMessagesStore.set(msgId, messageContent);
+  
+  // Clean up message from memory after 1 hour to avoid memory leak
+  setTimeout(() => {
+    sentMessagesStore.delete(msgId);
+  }, 3600000); // 1 hour
+}
 
 let sock;
 let isConnected = false;
@@ -73,6 +86,9 @@ async function connectToWhatsApp() {
         // ✅ Ignore status broadcast to prevent PreKey errors
         shouldIgnoreJid: (jid) => jid === 'status@broadcast',
         getMessage: async (key) => {
+          if (sentMessagesStore.has(key.id)) {
+            return sentMessagesStore.get(key.id);
+          }
           return {
             conversation: 'Message retry'
           };
@@ -400,7 +416,10 @@ app.post("/send", async (req, res) => {
     
     while (attempts < maxAttempts) {
       try {
-        await sock.sendMessage(jid, { text: message });
+        const sentMsg = await sock.sendMessage(jid, { text: message });
+        if (sentMsg && sentMsg.message) {
+          saveSentMessage(sentMsg.key, sentMsg.message);
+        }
         console.log(`✅ Message sent successfully to ${jid} (attempt ${attempts + 1})`);
         return res.json({ 
           success: true, 

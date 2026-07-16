@@ -157,6 +157,9 @@
     let pollingInterval;
     const QR_EXPIRATION_TIME = 60;
 
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const WABOT_BASE = isLocal ? "http://localhost:3000" : "";
+
     function showError(message) {
       errorMessage.style.display = "block";
       document.getElementById("errorText").textContent = message;
@@ -192,7 +195,7 @@
 
     async function fetchQR() {
       try {
-        const res = await fetch("http://localhost:3000/qr");
+        const res = await fetch(`${WABOT_BASE}/qr`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
@@ -235,12 +238,12 @@
 
       setTimeout(() => {
         sessionStorage.setItem('justLoggedIn', 'true');
-        window.location.href = "http://localhost:3000/";
+        window.location.href = isLocal ? "http://localhost:3000/" : "/login.html";
       }, 2000);
     }
 
     function startQRStream() {
-      const source = new EventSource("http://localhost:3000/qr-stream");
+      const source = new EventSource(`${WABOT_BASE}/qr-stream`);
       source.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.qr) renderQR(data.qr);
@@ -261,7 +264,7 @@
       spinnerEl.style.display = "block";
 
       try {
-        const res = await fetch("http://localhost:3000/reset-auth", { method: "DELETE" });
+        const res = await fetch(`${WABOT_BASE}/reset-auth`, { method: "DELETE" });
         const data = await res.json();
         console.log(data.message);
         fetchQR();

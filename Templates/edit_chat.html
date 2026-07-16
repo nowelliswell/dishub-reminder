@@ -505,7 +505,9 @@
             }
 
             // Send via Node.js API
-            const response = await fetch('http://localhost:3000/send', {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const WABOT_BASE = isLocal ? "http://localhost:3000" : "";
+            const response = await fetch(`${WABOT_BASE}/send`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'

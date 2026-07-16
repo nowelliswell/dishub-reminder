@@ -1,5 +1,11 @@
 # backend.py - MySQL Version
 import os
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 from datetime import datetime, date
 from scheduler.integrated_scheduler import init_scheduler
 from flask import Flask, request, jsonify, render_template, send_from_directory
@@ -25,7 +31,7 @@ except ImportError:
         print("   pip install pymysql")
         exit(1)
 
-load_dotenv()
+load_dotenv(override=True)
 
 # ========== MYSQL CONFIG ==========
 MYSQL_CONFIG = {
@@ -58,7 +64,26 @@ def get_db_connection():
         return pymysql.connect(**MYSQL_CONFIG)
 
 def init_db():
-    """Inisialisasi tabel (jika belum ada)"""
+    """Inisialisasi database dan tabel (jika belum ada)"""
+    # Buat database jika belum ada
+    db_name = MYSQL_CONFIG.get('database', 'dishub_reminder')
+    config_without_db = MYSQL_CONFIG.copy()
+    config_without_db.pop('database', None)
+    
+    try:
+        if MYSQL_LIB == 'mysql.connector':
+            conn = mysql.connector.connect(**config_without_db)
+        else:
+            conn = pymysql.connect(**config_without_db)
+        cursor = conn.cursor()
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}`")
+        cursor.close()
+        conn.close()
+        print(f"✅ Database '{db_name}' siap/terbuat.")
+    except Exception as e:
+        print(f"⚠️ Warning: Gagal membuat database '{db_name}' secara otomatis: {e}")
+        print("💡 Mencoba melanjutkan koneksi langsung...")
+
     conn = get_db_connection()
     cursor = conn.cursor()
     
