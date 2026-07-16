@@ -25,12 +25,12 @@ const __dirname = path.dirname(__filename);
 // 🔹 Middleware
 app.use(bodyParser.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, "..", "Templates")));
+app.use(express.static(path.join(__dirname, "..", "templates")));
 
 // 🔹 Route default (tampilkan login.html)
 app.get("/", (req, res) => {
   try {
-    return res.sendFile(path.join(__dirname, "..", "Templates", "login.html"));
+    return res.sendFile(path.join(__dirname, "..", "templates", "login.html"));
   } catch (err) {
     console.error("Error serving login.html:", err);
     return res.status(500).json({ error: err.message });
