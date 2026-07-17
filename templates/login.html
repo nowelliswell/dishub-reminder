@@ -410,7 +410,7 @@
       btnCancel.disabled = true;
       btnCancel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Membatalkan...';
       try {
-        await fetch(`${WABOT_BASE}/cancel-login`, { method: "POST" });
+        await fetch(`${WABOT_BASE}/reset-auth?cancel=true`, { method: "DELETE" });
       } catch (err) {
         console.error("Gagal membatalkan koneksi:", err);
       }

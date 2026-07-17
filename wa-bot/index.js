@@ -487,9 +487,45 @@ app.get("/qr-stream", async (req, res) => {
   }
 });
 
-// ✅ Reset Auth agar QR baru muncul
+// ✅ Reset Auth agar QR baru muncul (mendukung pembatalan login)
 app.delete("/reset-auth", async (req, res) => {
   try {
+    const isCancel = req.query.cancel === "true";
+    
+    if (isCancel) {
+      console.log("⏹️ Pembatalan koneksi dipicu oleh client (Klik Kembali).");
+      
+      // Clear reconnect timeout
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+        console.log("⏹️ Reconnect timeout dibatalkan.");
+      }
+
+      if (sock) {
+        console.log("⏹️ Soket WhatsApp dihentikan: dibatalkan oleh client.");
+        try {
+          sock.end();
+        } catch (err) {
+          console.error("Error ending socket during cancel:", err);
+        }
+        sock = null;
+      }
+      
+      isConnected = false;
+      currentQR = null;
+      reconnectAttempts = 0;
+      
+      // Clean auth session
+      if (await fs.pathExists(AUTH_FOLDER)) {
+        await fs.remove(AUTH_FOLDER);
+        console.log("🗑️ Auth info dibersihkan.");
+      }
+      
+      return res.json({ success: true, message: "Koneksi berhasil dibatalkan oleh client." });
+    }
+
+    // Normal reset-auth flow (when refresh QR is clicked)
     if (sock) {
       await sock.logout().catch(() => {});
       sock = null;
