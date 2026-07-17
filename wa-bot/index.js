@@ -64,6 +64,7 @@ let lastErrorStatus = null;
 // Track active clients viewing the login/QR code page
 let activeSSEClients = 0;
 let lastQRRequestTime = 0;
+let reconnectTimeout = null;
 
 function isClientActive() {
   return activeSSEClients > 0 || (Date.now() - lastQRRequestTime < 10000);
@@ -307,13 +308,15 @@ async function scheduleReconnect() {
 
     // Restart connection immediately
     console.log("🔄 Memulai ulang koneksi otomatis...");
-    setTimeout(() => connectToWhatsApp(), 1000); // Small delay before restart
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    reconnectTimeout = setTimeout(() => connectToWhatsApp(), 1000); // Small delay before restart
     return;
   }
 
   reconnectAttempts++;
 
-  setTimeout(() => {
+  if (reconnectTimeout) clearTimeout(reconnectTimeout);
+  reconnectTimeout = setTimeout(() => {
     connectToWhatsApp();
   }, BASE_RECONNECT_DELAY);
 }
@@ -331,8 +334,17 @@ if (credsExist) {
 
 app.post("/cancel-login", (req, res) => {
   try {
+    console.log("⏹️ Pembatalan koneksi dipicu oleh client (Klik Kembali).");
+    
+    // Clear reconnect timeout
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
+      console.log("⏹️ Reconnect timeout dibatalkan.");
+    }
+
     if (!isConnected && sock) {
-      console.log("⏹️ User membatalkan login. Menghentikan soket WhatsApp...");
+      console.log("⏹️ Soket WhatsApp dihentikan: dibatalkan oleh client.");
       try {
         sock.end();
       } catch (err) {
@@ -340,8 +352,9 @@ app.post("/cancel-login", (req, res) => {
       }
       sock = null;
       currentQR = null;
+      reconnectAttempts = 0;
     }
-    return res.json({ success: true, message: "Koneksi berhasil dibatalkan." });
+    return res.json({ success: true, message: "Koneksi berhasil dibatalkan oleh client." });
   } catch (err) {
     console.error("Error canceling login:", err);
     return res.status(500).json({ error: err.message });
@@ -447,15 +460,25 @@ app.get("/qr-stream", async (req, res) => {
       console.log(`🔌 Client terputus dari QR stream. Sisa client: ${activeSSEClients}`);
       
       // Jika tidak ada client lagi dan belum login, hentikan socket
-      if (activeSSEClients <= 0 && !isConnected && sock) {
-        console.log("⏹️ Tidak ada client aktif dan belum login. Mematikan socket...");
-        try {
-          sock.end();
-        } catch (err) {
-          console.error("Error ending socket:", err);
+      if (activeSSEClients <= 0 && !isConnected) {
+        console.log("⏹️ Tidak ada client aktif (Tab ditutup). Mematikan socket...");
+        
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
+          console.log("⏹️ Reconnect timeout dibatalkan.");
         }
-        sock = null;
+        
+        if (sock) {
+          try {
+            sock.end();
+          } catch (err) {
+            console.error("Error ending socket:", err);
+          }
+          sock = null;
+        }
         currentQR = null;
+        reconnectAttempts = 0;
       }
     });
   } catch (err) {
