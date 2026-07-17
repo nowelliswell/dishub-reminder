@@ -65,6 +65,7 @@ let lastErrorStatus = null;
 let activeSSEClients = 0;
 let lastQRRequestTime = 0;
 let reconnectTimeout = null;
+let isExplicitlyClosed = false;
 
 function isClientActive() {
   return activeSSEClients > 0 || (Date.now() - lastQRRequestTime < 10000);
@@ -133,6 +134,7 @@ async function connectToWhatsApp() {
         if (qr && !isConnected) {
           if (!isClientActive()) {
             console.log("⏹️ QR baru di-generate tetapi tidak ada client aktif. Menghentikan socket...");
+            isExplicitlyClosed = true;
             try {
               sock.end();
             } catch (err) {
@@ -149,6 +151,14 @@ async function connectToWhatsApp() {
         if (connection === "close") {
           isConnected = false;
           currentQR = null; // Clear QR on disconnect
+
+          if (isExplicitlyClosed) {
+            console.log("⏹️ Soket ditutup secara eksplisit. Reconnect dibatalkan.");
+            isExplicitlyClosed = false; // Reset flag
+            sock = null;
+            return;
+          }
+
           const boomError = new Boom(lastDisconnect?.error);
           const reason = boomError?.output?.statusCode;
           const shouldReconnect = reason !== DisconnectReason.loggedOut;
@@ -345,6 +355,7 @@ app.post("/cancel-login", (req, res) => {
 
     if (!isConnected && sock) {
       console.log("⏹️ Soket WhatsApp dihentikan: dibatalkan oleh client.");
+      isExplicitlyClosed = true;
       try {
         sock.end();
       } catch (err) {
@@ -470,6 +481,7 @@ app.get("/qr-stream", async (req, res) => {
         }
         
         if (sock) {
+          isExplicitlyClosed = true;
           try {
             sock.end();
           } catch (err) {
@@ -504,6 +516,7 @@ app.delete("/reset-auth", async (req, res) => {
 
       if (sock) {
         console.log("⏹️ Soket WhatsApp dihentikan: dibatalkan oleh client.");
+        isExplicitlyClosed = true;
         try {
           sock.end();
         } catch (err) {
