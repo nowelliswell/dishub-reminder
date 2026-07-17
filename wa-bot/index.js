@@ -61,6 +61,14 @@ let encryptionErrorCount = 0; // Track encryption errors
 const MAX_ENCRYPTION_ERRORS = 5; // Max errors before force repair
 let lastErrorStatus = null;
 
+// Track active clients viewing the login/QR code page
+let activeSSEClients = 0;
+let lastQRRequestTime = 0;
+
+function isClientActive() {
+  return activeSSEClients > 0 || (Date.now() - lastQRRequestTime < 10000);
+}
+
 // === CONNECT TO WHATSAPP ===
 async function connectToWhatsApp() {
   try {
@@ -120,8 +128,19 @@ async function connectToWhatsApp() {
         // ✅ DEBUG: Log semua connection state
         console.log("🔔 Connection update:", { connection, hasQR: !!qr, isConnected });
 
-        // ✅ Handle QR - only set once and log once
-        if (qr && !currentQR && !isConnected) {
+        // ✅ Handle QR - only set once and log once. Stop connection if no clients are active.
+        if (qr && !isConnected) {
+          if (!isClientActive()) {
+            console.log("⏹️ QR baru di-generate tetapi tidak ada client aktif. Menghentikan socket...");
+            try {
+              sock.end();
+            } catch (err) {
+              console.error("Error ending socket:", err);
+            }
+            sock = null;
+            currentQR = null;
+            return;
+          }
           currentQR = qr;
           console.log("📱 QR baru tersedia (akan dikirim ke frontend).");
         }
@@ -142,7 +161,7 @@ async function connectToWhatsApp() {
 
           // Check for logout - automatically reset auth and regenerate QR
           if (reason === DisconnectReason.loggedOut || reason === 401) {
-            console.log("🚫 Logout terdeteksi, regenerasi QR otomatis...");
+            console.log("🚫 Logout terdeteksi, membersihkan sesi...");
             // Reset connection state
             reconnectAttempts = 0;
             currentQR = null;
@@ -157,9 +176,14 @@ async function connectToWhatsApp() {
               console.error("Error deleting auth folder:", err);
             }
 
-            // Restart connection to generate new QR
-            console.log("🔄 Memulai ulang koneksi untuk QR baru...");
-            setTimeout(() => connectToWhatsApp(), 1000); // Small delay before restart
+            // Restart connection to generate new QR only if client is active
+            if (isClientActive()) {
+              console.log("🔄 Memulai ulang koneksi untuk QR baru...");
+              setTimeout(() => connectToWhatsApp(), 1000); // Small delay before restart
+            } else {
+              console.log("⏹️ Restart koneksi dibatalkan karena tidak ada client aktif.");
+              sock = null;
+            }
             return;
           }
 
@@ -172,8 +196,14 @@ async function connectToWhatsApp() {
           }
 
           if (shouldReconnect) {
-            console.log("🔄 Reconnecting...");
-            scheduleReconnect();
+            if (isClientActive()) {
+              console.log("🔄 Reconnecting (client aktif terdeteksi)...");
+              scheduleReconnect();
+            } else {
+              console.log("⏹️ Reconnect dibatalkan karena tidak ada client aktif.");
+              sock = null;
+              currentQR = null;
+            }
           } else {
             console.log("🚫 Logged out. Scan ulang diperlukan.");
             reconnectAttempts = 0; // Reset attempts for manual reconnect
@@ -288,8 +318,14 @@ async function scheduleReconnect() {
   }, BASE_RECONNECT_DELAY);
 }
 
-// 🔹 Jalankan koneksi pertama kali
-connectToWhatsApp();
+// 🔹 Jalankan koneksi pertama kali HANYA jika ada file session
+const credsExist = fs.existsSync(path.join(AUTH_FOLDER, "creds.json"));
+if (credsExist) {
+  console.log("🔑 Sesi tersimpan ditemukan. Menghubungkan ke WhatsApp...");
+  connectToWhatsApp();
+} else {
+  console.log("🚪 Sesi tidak ditemukan. Tunggu hingga halaman login dibuka untuk memulai.");
+}
 
 // === API ===
 
@@ -319,6 +355,13 @@ async function validateConnectionBeforeSend(jid) {
 // ✅ Ambil QR untuk frontend
 app.get("/qr", (req, res) => {
   try {
+    lastQRRequestTime = Date.now();
+    // Start socket if it is not running
+    if (!sock && !isConnected) {
+      console.log("🔌 Client memanggil /qr (polling). Menyalakan socket WhatsApp...");
+      connectToWhatsApp();
+    }
+
     if (currentQR) {
       return res.json({ success: true, qr: currentQR });
     } else {
@@ -349,6 +392,13 @@ app.get("/qr-stream", async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
+    activeSSEClients++;
+    // Start socket if it is not running
+    if (!sock && !isConnected) {
+      console.log("🔌 Ada client terhubung ke QR stream. Menyalakan socket WhatsApp...");
+      connectToWhatsApp();
+    }
+
     const sendQR = () => {
       try {
         // ✅ FIX: Jangan kirim QR lagi kalau sudah connected
@@ -372,7 +422,23 @@ app.get("/qr-stream", async (req, res) => {
     const interval = setInterval(sendQR, 3000);
 
     // bersihkan koneksi jika user tutup halaman
-    req.on("close", () => clearInterval(interval));
+    req.on("close", () => {
+      clearInterval(interval);
+      activeSSEClients--;
+      console.log(`🔌 Client terputus dari QR stream. Sisa client: ${activeSSEClients}`);
+      
+      // Jika tidak ada client lagi dan belum login, hentikan socket
+      if (activeSSEClients <= 0 && !isConnected && sock) {
+        console.log("⏹️ Tidak ada client aktif dan belum login. Mematikan socket...");
+        try {
+          sock.end();
+        } catch (err) {
+          console.error("Error ending socket:", err);
+        }
+        sock = null;
+        currentQR = null;
+      }
+    });
   } catch (err) {
     console.error("Error setting up QR stream:", err);
     return res.status(500).json({ error: err.message });
