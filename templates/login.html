@@ -135,6 +135,11 @@
       <span id="errorText">Terjadi kesalahan</span>
     </div>
 
+    <div id="warningMessage" class="status-message warning" style="background-color: #fff3cd; color: #664d03; border-left: 4px solid #ffc107; display: none; padding: 0.875rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; font-weight: 500; text-align: left; font-size: 0.875rem;">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span id="warningText">Peringatan</span>
+    </div>
+
     <div id="qrcode"></div>
     <div class="spinner" id="spinner"></div>
     <div class="checkmark" id="checkmark">✔</div>
@@ -152,6 +157,7 @@
     const refreshBtn = document.getElementById("refreshBtn");
     const errorMessage = document.getElementById("errorMessage");
     const qrTimerEl = document.getElementById("qrTimer");
+    const warningMessage = document.getElementById("warningMessage");
 
     let qrCountdownInterval;
     let pollingInterval;
@@ -176,6 +182,20 @@
 
     function hideError() { 
       errorMessage.style.display = "none"; 
+    }
+
+    function showWarning(message) {
+      const warningEl = document.getElementById("warningMessage");
+      const warningTextEl = document.getElementById("warningText");
+      if (warningEl && warningTextEl) {
+        warningEl.style.display = "block";
+        warningTextEl.textContent = message;
+      }
+    }
+
+    function hideWarning() {
+      const warningEl = document.getElementById("warningMessage");
+      if (warningEl) warningEl.style.display = "none";
     }
 
     function startQrCountdown() {
@@ -267,6 +287,12 @@
         const res = await fetch(`${WABOT_BASE}/qr`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+
+        if (data.lastErrorStatus === "SESSION_REPLACED") {
+          showWarning("Sesi WhatsApp sebelumnya diambil alih oleh perangkat atau lokasi lain.");
+        } else {
+          hideWarning();
+        }
 
         if (data.success && data.qr) {
           isFirstCheck = false;

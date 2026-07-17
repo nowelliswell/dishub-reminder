@@ -59,6 +59,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const BASE_RECONNECT_DELAY = 5000; // 5 seconds
 let encryptionErrorCount = 0; // Track encryption errors
 const MAX_ENCRYPTION_ERRORS = 5; // Max errors before force repair
+let lastErrorStatus = null;
 
 // === CONNECT TO WHATSAPP ===
 async function connectToWhatsApp() {
@@ -134,6 +135,11 @@ async function connectToWhatsApp() {
 
           console.log("⚠️ Koneksi terputus:", reason, lastDisconnect?.error?.message);
 
+          if (reason === DisconnectReason.connectionReplaced) {
+            console.log("⚠️ ERROR: Sesi ini telah diambil alih oleh perangkat/lokasi lain.");
+            lastErrorStatus = "SESSION_REPLACED";
+          }
+
           // Check for logout - automatically reset auth and regenerate QR
           if (reason === DisconnectReason.loggedOut || reason === 401) {
             console.log("🚫 Logout terdeteksi, regenerasi QR otomatis...");
@@ -176,6 +182,7 @@ async function connectToWhatsApp() {
           isConnected = true;
           currentQR = null;
           reconnectAttempts = 0; // Reset on successful connection
+          lastErrorStatus = null; // Reset error status
           console.log("✅ WhatsApp Connected!");
         }
       } catch (err) {
@@ -322,6 +329,7 @@ app.get("/qr", (req, res) => {
           ? "✅ Sudah terkoneksi ke WhatsApp."
           : "⏳ Menunggu koneksi atau QR baru...",
         connection: lastConnectionUpdate,
+        lastErrorStatus: lastErrorStatus,
         activeUser: isConnected && sock?.user ? {
           phone: sock.user.id.split(":")[0].split("@")[0],
           name: sock.user.name || "Perangkat Server"
