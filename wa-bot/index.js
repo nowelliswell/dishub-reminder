@@ -329,6 +329,25 @@ if (credsExist) {
 
 // === API ===
 
+app.post("/cancel-login", (req, res) => {
+  try {
+    if (!isConnected && sock) {
+      console.log("⏹️ User membatalkan login. Menghentikan soket WhatsApp...");
+      try {
+        sock.end();
+      } catch (err) {
+        console.error("Error ending socket during cancel:", err);
+      }
+      sock = null;
+      currentQR = null;
+    }
+    return res.json({ success: true, message: "Koneksi berhasil dibatalkan." });
+  } catch (err) {
+    console.error("Error canceling login:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper function to validate connection before sending
 async function validateConnectionBeforeSend(jid) {
   try {

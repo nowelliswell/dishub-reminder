@@ -147,6 +147,9 @@
     <button id="refreshBtn" class="btn btn-primary" style="display: none;">
       <i class="bi bi-arrow-clockwise"></i> Refresh QR Code
     </button>
+    <button id="btnCancel" class="btn btn-outline-secondary w-100" style="display: none; margin-top: 0.75rem;">
+      <i class="bi bi-arrow-left"></i> Kembali ke Dashboard
+    </button>
   </div>
 
   <script>
@@ -158,6 +161,7 @@
     const errorMessage = document.getElementById("errorMessage");
     const qrTimerEl = document.getElementById("qrTimer");
     const warningMessage = document.getElementById("warningMessage");
+    const btnCancel = document.getElementById("btnCancel");
 
     let qrCountdownInterval;
     let pollingInterval;
@@ -173,6 +177,7 @@
       refreshBtn.style.display = "inline-flex";
       spinnerEl.style.display = "none";
       qrTimerEl.style.display = "none";
+      btnCancel.style.display = "none";
       clearInterval(qrCountdownInterval);
       clearInterval(pollingInterval);
       // Remove action container if it exists
@@ -225,6 +230,7 @@
       spinnerEl.style.display = "none";
       checkmarkEl.classList.add("show");
       refreshBtn.style.display = "none";
+      btnCancel.style.display = "none";
       
       const phone = activeUser ? activeUser.phone : "Perangkat Server";
       const name = activeUser ? activeUser.name : "WhatsApp";
@@ -321,6 +327,7 @@
         if (!err && canvas) {
           qrcodeEl.appendChild(canvas);
           refreshBtn.style.display = "none";
+          btnCancel.style.display = "inline-flex";
           startQrCountdown();
         } else {
           showError("Gagal membuat QR.");
@@ -332,6 +339,7 @@
       statusEl.innerHTML = "<i class='bi bi-check-circle-fill'></i> Terkoneksi ke WhatsApp!";
       spinnerEl.style.display = "none";
       checkmarkEl.classList.add("show");
+      btnCancel.style.display = "none";
       clearInterval(qrCountdownInterval);
       clearInterval(pollingInterval);
       qrTimerEl.style.display = "none";
@@ -396,6 +404,17 @@
           refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh QR Code';
         }, 2000);
       }
+    });
+
+    btnCancel.addEventListener("click", async () => {
+      btnCancel.disabled = true;
+      btnCancel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Membatalkan...';
+      try {
+        await fetch(`${WABOT_BASE}/cancel-login`, { method: "POST" });
+      } catch (err) {
+        console.error("Gagal membatalkan koneksi:", err);
+      }
+      window.location.href = isLocal ? "http://localhost:3000/index.html" : "/index.html";
     });
 
     startQRStream();
