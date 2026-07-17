@@ -55,26 +55,47 @@
       width: 100% !important;
       height: 320px !important;
     }
+
+    /* === MOBILE RESPONSIVE === */
+    @media (max-width: 768px) {
+      body { padding: 1.25rem 1rem; }
+      .header-title { font-size: 1.35rem; }
+      canvas { height: 220px !important; }
+      .stat-card { padding: 1rem; }
+    }
+
+    @media (max-width: 576px) {
+      .header-title { font-size: 1.15rem; }
+      canvas { height: 180px !important; }
+      .stat-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+      .stat-card h3 { margin-top: 0.25rem; }
+    }
   </style>
 </head>
 <body>
   <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4 align-items-center">
-      <div class="col">
+      <div class="col-12 col-md mb-2 mb-md-0">
         <div class="header-title">Dashboard Monitoring WhatsApp Bot</div>
         <div class="text-muted mt-1">Monitoring pesan dan aktivitas bot WhatsApp - Dishub</div>
       </div>
-      <div class="col-auto">
-        <button id="btnRefresh" class="btn btn-primary me-2">
-          <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
-        </button>
-        <button id="btnExportPDF" class="btn btn-outline-danger me-2">
-          <i class="bi bi-file-earmark-pdf me-2"></i>Export to PDF
-        </button>
-        <button id="btnLogout" class="btn btn-outline-secondary">
-          <i class="bi bi-box-arrow-right me-2"></i>Keluar
-        </button>
+      <div class="col-12 col-md-auto">
+        <div class="d-flex gap-2 flex-wrap">
+          <button id="btnRefresh" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline ms-1">Refresh Data</span>
+          </button>
+          <button id="btnExportPDF" class="btn btn-outline-danger">
+            <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-sm-inline ms-1">Export PDF</span>
+          </button>
+          <button id="btnLogout" class="btn btn-outline-secondary">
+            <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline ms-1">Keluar</span>
+          </button>
+        </div>
       </div>
     </div>
 

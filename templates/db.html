@@ -126,7 +126,7 @@
     }
 
     @media(max-width:768px){
-      .header-title { font-size: 1.5rem; }
+      .header-title { font-size: 1.35rem; }
       .search-input { width: 100%; margin-bottom: 0.75rem; }
       
       /* Stack stat cards on mobile */
@@ -141,8 +141,20 @@
     }
 
     @media(max-width:576px){
-      .header-title { font-size: 1.25rem; }
-      body { padding: 1.5rem 1rem; }
+      .header-title { font-size: 1.15rem; }
+      body { padding: 1rem 0.75rem; }
+      .controls {
+        flex-direction: column;
+        width: 100%;
+      }
+      .controls .search-input {
+        width: 100% !important;
+      }
+      .table-header-mobile {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+      }
     }
     
     /* Ensure cards stay in one row on desktop */
@@ -159,7 +171,7 @@
 <body>
   <div class="container-fluid">
     <div class="row mb-4 align-items-center">
-      <div class="col-auto">
+      <div class="col-auto d-none d-sm-block">
         <div class="header-avatar position-relative">
           <img src="/static/uploads/avatar.png" id="headerAvatar" class="rounded-circle mb-0" 
                style="width:64px;height:64px;object-fit:cover;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.1);"
@@ -171,23 +183,23 @@
           <input type="file" id="headerAvatarInput" accept="image/*" style="display:none">
         </div>
       </div>
-      <div class="col">
-        <div class="header-title gradient-text">Dashboard Database Reminder Kendaraan</div>
+      <div class="col-12 col-sm mb-2 mb-sm-0">
+        <div class="header-title gradient-text">Dashboard Database Reminder</div>
         <div class="text-muted" style="margin-top:6px">Database sistem manajemen pengingat uji kendaraan Dishub</div>
       </div>
-      <div class="col-auto">
+      <div class="col-12 col-sm-auto">
         <div class="d-flex gap-2 flex-wrap">
           <button id="btnEditChat" class="btn btn-success btn-sm" onclick="window.location.href='/edit_chat'">
-            <i class="bi bi-chat-text"></i> Edit Chat
+            <i class="bi bi-chat-text"></i><span class="d-none d-md-inline ms-1">Edit Chat</span>
           </button>
           <button id="btnPesanKeluar" class="btn btn-outline-primary btn-sm" onclick="window.location.href='/pesankeluar'">
-            <i class="bi bi-send-fill"></i> Pesan Keluar
+            <i class="bi bi-send-fill"></i><span class="d-none d-md-inline ms-1">Pesan Keluar</span>
           </button>
           <button id="btnRefresh" class="btn btn-secondary btn-sm">
-            <i class="bi bi-arrow-fill"></i> Refresh
+            <i class="bi bi-arrow-repeat"></i><span class="d-none d-md-inline ms-1">Refresh</span>
           </button>
           <button id="btnLogout" class="btn btn-outline-danger btn-sm">
-            <i class="bi bi-box-arrow-right"></i> Logout
+            <i class="bi bi-box-arrow-right"></i><span class="d-none d-md-inline ms-1">Logout</span>
           </button>
         </div>
       </div>
@@ -203,16 +215,16 @@
     <div class="row">
       <div class="col-12">
         <div class="table-card bg-white">
-          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center table-header-mobile">
             <div>
               <h5 class="mb-0">Data Reminder</h5>
               <small class="text-muted">Data pengingat uji kendaraan</small>
             </div>
 
-            <div class="controls">
+            <div class="controls" style="display:flex; gap:8px; align-items:center;">
               <input id="searchBox" class="search-input" placeholder="Cari nama, NIK, atau no kendaraan..." />
               <button id="exportBtn" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-download"></i> Export
+                <i class="bi bi-download"></i><span class="d-none d-sm-inline ms-1">Export</span>
               </button>
             </div>
           </div>

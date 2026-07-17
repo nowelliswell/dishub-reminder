@@ -424,12 +424,30 @@
    ============================================ */
 
 @media (max-width: 768px) {
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
   .card-body {
     padding: var(--space-md);
   }
+}
+
+/* Mobile-friendly header/toolbar buttons: stack & full-width */
+@media (max-width: 576px) {
+  .mobile-btn-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    width: 100%;
+  }
+
+  .mobile-btn-stack .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Ensure table action buttons stay compact on mobile */
+.table .btn-sm,
+.d-flex.gap-1 .btn-sm {
+  width: auto;
+  min-width: unset;
+  padding: 0.3rem 0.5rem;
 }

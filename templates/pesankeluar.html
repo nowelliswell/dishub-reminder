@@ -106,35 +106,63 @@
       font-size: 0.75rem;
       font-weight: 600;
     }
+
+    /* === MOBILE RESPONSIVE === */
+    @media (max-width: 768px) {
+      body { padding: 1.25rem 1rem; }
+      .header-title { font-size: 1.35rem; }
+      .stat-card { padding: 1rem; }
+    }
+
+    @media (max-width: 576px) {
+      body { padding: 1rem 0.75rem; }
+      .header-title { font-size: 1.15rem; }
+      .stat-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+      .stat-card h3 { margin-top: 0.25rem; }
+      .table-header-mobile {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+      }
+      .table-header-mobile .search-mobile {
+        width: 100% !important;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4 align-items-center">
-      <div class="col">
+      <div class="col-12 col-md mb-2 mb-md-0">
         <div class="header-title">
           <i class="bi bi-send-fill"></i>
           Analisis Pesan Keluar
         </div>
         <div class="text-muted mt-1">Detail dan analisis pesan WhatsApp yang terkirim</div>
       </div>
-      <div class="col-auto">
-        <button id="btnRefresh" class="btn btn-primary me-2">
-          <i class="bi bi-arrow-clockwise me-2"></i>Refresh
-        </button>
-        <button id="btnExportExcel" class="btn btn-success me-2">
-          <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
-        </button>
-        <button id="btnBack" class="btn btn-secondary" onclick="window.location.href='/list'">
-          <i class="bi bi-arrow-left me-2"></i>Kembali
-        </button>
+      <div class="col-12 col-md-auto">
+        <div class="d-flex gap-2 flex-wrap">
+          <button id="btnRefresh" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline ms-1">Refresh</span>
+          </button>
+          <button id="btnExportExcel" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i><span class="d-none d-sm-inline ms-1">Export Excel</span>
+          </button>
+          <button id="btnBack" class="btn btn-secondary" onclick="window.location.href='/list'">
+            <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline ms-1">Kembali</span>
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Summary Stats -->
     <div class="row g-3 mb-4">
-      <div class="col-md-3">
+      <div class="col-6 col-md-3">
         <div class="stat-card">
           <div>
             <div class="text-success"><i class="bi bi-check-circle-fill stat-icon"></i></div>
@@ -144,7 +172,7 @@
           <h3 class="text-success mb-0" id="sentCount">0</h3>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-6 col-md-3">
         <div class="stat-card">
           <div>
             <div class="text-danger"><i class="bi bi-x-circle-fill stat-icon"></i></div>
@@ -154,7 +182,7 @@
           <h3 class="text-danger mb-0" id="failedCount">0</h3>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-6 col-md-3">
         <div class="stat-card">
           <div>
             <div class="text-warning"><i class="bi bi-clock-fill stat-icon"></i></div>
@@ -164,7 +192,7 @@
           <h3 class="text-warning mb-0" id="pendingCount">0</h3>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-6 col-md-3">
         <div class="stat-card">
           <div>
             <div class="text-primary"><i class="bi bi-percent stat-icon"></i></div>
@@ -208,13 +236,13 @@
 
     <!-- Data Table -->
     <div class="table-card">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center table-header-mobile">
         <div>
           <h5 class="mb-0">Daftar Pesan Keluar</h5>
           <small class="text-muted">Detail pesan yang dikirim oleh sistem</small>
         </div>
         <div>
-          <input id="searchBox" class="form-control form-control-sm" style="width: 280px;" placeholder="Cari nomor telepon atau pesan...">
+          <input id="searchBox" class="form-control form-control-sm search-mobile" style="width: 280px;" placeholder="Cari nomor telepon atau pesan...">
         </div>
       </div>
 
@@ -223,7 +251,7 @@
         <p class="mt-2 text-muted">Memuat data...</p>
       </div>
 
-      <div class="p-3">
+      <div class="p-3 table-responsive">
         <table id="messagesTable" class="table table-hover nowrap" style="width:100%">
           <thead>
             <tr>

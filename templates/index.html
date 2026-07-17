@@ -243,6 +243,26 @@
     @media(max-width:900px){
       .header-wrap { flex-direction: column; align-items: flex-start; gap: 1rem; }
     }
+
+    /* === MOBILE RESPONSIVE === */
+    @media(max-width:768px){
+      body { padding: 1rem; }
+      .header-left h1 { font-size: 1.25rem; }
+      .header-left h1 i { font-size: 1.35rem; }
+    }
+
+    @media(max-width:576px){
+      body { padding: 0.75rem; }
+      .header-left h1 { font-size: 1.1rem; }
+      .table-footer-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .table-footer-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -370,26 +390,26 @@
       </div>
 
       <div class="p-3 dashed-top d-flex gap-2 flex-wrap align-items-center">
-        <div class="flex-fill text-muted text-sm">Tip: Klik pill status untuk memfilter, tekan Refresh untuk ambil data terbaru.</div>
-        <div style="min-width:420px; display:flex; gap:12px; flex-wrap: wrap;">
+        <div class="flex-fill text-muted text-sm d-none d-md-block">Tip: Klik pill status untuk memfilter, tekan Refresh untuk ambil data terbaru.</div>
+        <div class="table-footer-actions" style="display:flex; gap:8px; flex-wrap: wrap;">
           <button id="runNowBtn" class="btn btn-success">
             <i class="bi bi-play-fill"></i>
-            <span>Kirim Semua Hari Ini</span>
+            <span class="d-none d-sm-inline">Kirim Semua Hari Ini</span>
             <span id="runNowSpinner" class="spinner-sm ms-2 d-none" role="status" aria-hidden="true"></span>
           </button>
 
           <button id="clearBtn" class="btn btn-outline-danger">
             <i class="bi bi-trash3"></i>
-            <span>Hapus Semua</span>
+            <span class="d-none d-sm-inline">Hapus Semua</span>
           </button>
 
           <button id="resetAuthBtn" class="btn btn-warning">
             <i class="bi bi-arrow-clockwise"></i>
-            <span>Reset Login WA</span>
+            <span class="d-none d-sm-inline">Reset Login WA</span>
           </button>
 
           <button id="btnLogout" class="btn btn-secondary">
-            <span>Keluar</span>
+            <span class="d-none d-sm-inline">Keluar</span>
             <i class="bi bi-box-arrow-right"></i>
           </button>
         </div>

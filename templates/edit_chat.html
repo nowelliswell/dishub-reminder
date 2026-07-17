@@ -83,8 +83,16 @@
     }
 
     @media(max-width:768px){
-      .header-title { font-size: 1.5rem; }
-      body { padding: 1.5rem 1rem; }
+      .header-title { font-size: 1.35rem; }
+      body { padding: 1.25rem 1rem; }
+      textarea.form-control { min-height: 250px; }
+    }
+
+    @media(max-width:576px){
+      .header-title { font-size: 1.15rem; }
+      body { padding: 1rem 0.75rem; }
+      textarea.form-control { min-height: 180px; }
+      .preview-card { font-size: 0.875rem; padding: 1rem; }
     }
   </style>
 </head>
@@ -92,21 +100,22 @@
   <div class="container">
     <!-- Header -->
     <div class="row mb-4 align-items-center">
-      <div class="col">
+      <div class="col-12 col-md mb-2 mb-md-0">
         <div class="header-title">
           <i class="bi bi-chat-left-text-fill" style="color:var(--brand-blue-1);"></i>
-          Edit Template Chat WhatsApp
+          Edit Template Chat
         </div>
         <div class="text-muted">Kelola template pesan pengingat uji kendaraan</div>
       </div>
-      <div class="col-auto">
-        <button id="btnPesanKeluar" class="btn btn-outline-primary me-2" title="Analisis Pesan Keluar" onclick="window.location.href='/pesankeluar'">
-          <i class="bi bi-send-fill me-2"></i>Pesan Keluar
-        </button>
-
-        <button id="btnBack" class="btn btn-secondary" onclick="window.location.href='/list'">
-          <i class="bi bi-arrow-left me-2"></i>Kembali
-        </button>
+      <div class="col-12 col-md-auto">
+        <div class="d-flex gap-2 flex-wrap">
+          <button id="btnPesanKeluar" class="btn btn-outline-primary" title="Analisis Pesan Keluar" onclick="window.location.href='/pesankeluar'">
+            <i class="bi bi-send-fill"></i><span class="d-none d-sm-inline ms-1">Pesan Keluar</span>
+          </button>
+          <button id="btnBack" class="btn btn-secondary" onclick="window.location.href='/list'">
+            <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline ms-1">Kembali</span>
+          </button>
+        </div>
       </div>
     </div>
 
