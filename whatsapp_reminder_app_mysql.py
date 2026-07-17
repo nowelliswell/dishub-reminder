@@ -145,10 +145,27 @@ def add_reminder(name, nik, vehicle_number, test_date, phone=None):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        'INSERT INTO reminders (name, vehicle_number, no_uji, jenis_kendaraan, test_date, phone, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
-        (name, vehicle_number, no_uji, jenis_kendaraan, test_date, phone, datetime.utcnow())
-    )
+    
+    # 1. Cek apakah nomor kendaraan ini sudah ada di database
+    cursor.execute("SELECT id FROM reminders WHERE vehicle_number = %s", (vehicle_number,))
+    existing = cursor.fetchone()
+    
+    if existing:
+        # 2. Jika ada, UPDATE data tersebut dan RESET status centang (is_tested = 0)
+        cursor.execute("""
+            UPDATE reminders 
+            SET name=%s, no_uji=%s, jenis_kendaraan=%s, test_date=%s, phone=%s, is_tested=0 
+            WHERE id=%s
+        """, (name, no_uji, jenis_kendaraan, test_date, phone, existing[0]))
+        print(f"🔄 Data kendaraan {vehicle_number} diperbarui (is_tested direset ke 0)")
+    else:
+        # 3. Jika belum ada, buat record baru
+        cursor.execute(
+            'INSERT INTO reminders (name, vehicle_number, no_uji, jenis_kendaraan, test_date, phone, created_at, is_tested) VALUES (%s, %s, %s, %s, %s, %s, %s, 0)',
+            (name, vehicle_number, no_uji, jenis_kendaraan, test_date, phone, datetime.utcnow())
+        )
+        print(f"📥 Data kendaraan {vehicle_number} ditambahkan baru")
+        
     conn.commit()
     cursor.close()
     conn.close()
@@ -312,6 +329,10 @@ def run_now_check(as_of_date=None):
     results = list_reminders()
     actions = []
     for r in results:
+        # JIKA SUDAH UJI, JANGAN KIRIM REMINDER APAPUN!
+        if r.get('is_tested') == 1:
+            continue
+            
         test_date = datetime.strptime(r['test_date'], '%Y-%m-%d').date()
         days_until = (test_date - today).days
         status_label, color = classify_by_days(days_until)
@@ -438,9 +459,11 @@ def edit_reminder(reminder_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Mengubah data dan mereset is_tested kembali ke 0
         cursor.execute("""
             UPDATE reminders 
-            SET name=%s, vehicle_number=%s, no_uji=%s, jenis_kendaraan=%s, test_date=%s, phone=%s 
+            SET name=%s, vehicle_number=%s, no_uji=%s, jenis_kendaraan=%s, test_date=%s, phone=%s, is_tested=0 
             WHERE id=%s
         """, (
             data.get("name"),
