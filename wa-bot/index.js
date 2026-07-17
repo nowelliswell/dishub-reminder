@@ -317,10 +317,15 @@ app.get("/qr", (req, res) => {
     } else {
       return res.json({
         success: false,
+        isConnected: isConnected,
         message: isConnected
           ? "✅ Sudah terkoneksi ke WhatsApp."
           : "⏳ Menunggu koneksi atau QR baru...",
         connection: lastConnectionUpdate,
+        activeUser: isConnected && sock?.user ? {
+          phone: sock.user.id.split(":")[0].split("@")[0],
+          name: sock.user.name || "Perangkat Server"
+        } : null
       });
     }
   } catch (err) {

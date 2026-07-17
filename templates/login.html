@@ -159,6 +159,7 @@
 
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const WABOT_BASE = isLocal ? "http://localhost:3000" : "";
+    let isFirstCheck = true;
 
     function showError(message) {
       errorMessage.style.display = "block";
@@ -168,6 +169,9 @@
       qrTimerEl.style.display = "none";
       clearInterval(qrCountdownInterval);
       clearInterval(pollingInterval);
+      // Remove action container if it exists
+      const actionContainer = document.getElementById("actionContainer");
+      if (actionContainer) actionContainer.remove();
     }
 
     function hideError() { 
@@ -193,6 +197,71 @@
       }, 1000);
     }
 
+    function showConnectedState(activeUser) {
+      clearInterval(qrCountdownInterval);
+      clearInterval(pollingInterval);
+      qrTimerEl.style.display = "none";
+      qrcodeEl.innerHTML = "";
+      spinnerEl.style.display = "none";
+      checkmarkEl.classList.add("show");
+      refreshBtn.style.display = "none";
+      
+      const phone = activeUser ? activeUser.phone : "Perangkat Server";
+      const name = activeUser ? activeUser.name : "WhatsApp";
+      
+      statusEl.innerHTML = `<span style="color: var(--success); font-weight: bold;"><i class="bi bi-check-circle-fill"></i> Terkoneksi ke WhatsApp</span><br><span style="font-size: 0.9rem; color: var(--gray-600); display: block; margin-top: 0.5rem;">Nomor: <strong>${phone} (${name})</strong></span>`;
+      
+      // Buat tombol aksi jika belum ada
+      let actionContainer = document.getElementById("actionContainer");
+      if (!actionContainer) {
+        actionContainer = document.createElement("div");
+        actionContainer.id = "actionContainer";
+        actionContainer.className = "d-flex flex-column gap-2 mt-4";
+        actionContainer.style.display = "flex";
+        actionContainer.style.flexDirection = "column";
+        actionContainer.style.gap = "0.75rem";
+        actionContainer.style.marginTop = "1.5rem";
+        document.querySelector(".card").appendChild(actionContainer);
+      }
+      
+      actionContainer.innerHTML = `
+        <button id="btnGoDashboard" class="btn btn-primary" style="width: 100%;">
+          <i class="bi bi-speedometer2"></i> Masuk ke Dashboard
+        </button>
+        <button id="btnDisconnect" class="btn btn-outline-danger" style="width: 100%;">
+          <i class="bi bi-box-arrow-left"></i> Putuskan & Ganti Akun
+        </button>
+      `;
+      
+      document.getElementById("btnGoDashboard").addEventListener("click", () => {
+        sessionStorage.setItem('justLoggedIn', 'true');
+        window.location.href = isLocal ? "http://localhost:3000/index.html" : "/index.html";
+      });
+      
+      document.getElementById("btnDisconnect").addEventListener("click", async () => {
+        const btn = document.getElementById("btnDisconnect");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memutuskan...';
+        try {
+          const res = await fetch(`${WABOT_BASE}/reset-auth`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Gagal reset auth");
+          actionContainer.remove();
+          checkmarkEl.classList.remove("show");
+          spinnerEl.style.display = "block";
+          statusEl.textContent = "🔄 Menyiapkan QR baru...";
+          isFirstCheck = false;
+          
+          // Re-init connection and streams
+          fetchQR();
+          startQRStream();
+        } catch (err) {
+          showError("Gagal memutuskan koneksi");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-box-arrow-left"></i> Putuskan & Ganti Akun';
+        }
+      });
+    }
+
     async function fetchQR() {
       try {
         const res = await fetch(`${WABOT_BASE}/qr`);
@@ -200,9 +269,14 @@
         const data = await res.json();
 
         if (data.success && data.qr) {
+          isFirstCheck = false;
           renderQR(data.qr);
-        } else if (/sudah terkoneksi/i.test(data.message || "")) {
-          onConnected();
+        } else if (data.isConnected) {
+          if (isFirstCheck) {
+            showConnectedState(data.activeUser);
+          } else {
+            onConnected();
+          }
         } else {
           statusEl.textContent = data.message || "Menunggu QR...";
         }
@@ -235,6 +309,8 @@
       clearInterval(qrCountdownInterval);
       clearInterval(pollingInterval);
       qrTimerEl.style.display = "none";
+      const actionContainer = document.getElementById("actionContainer");
+      if (actionContainer) actionContainer.remove();
 
       setTimeout(() => {
         sessionStorage.setItem('justLoggedIn', 'true');
@@ -246,8 +322,25 @@
       const source = new EventSource(`${WABOT_BASE}/qr-stream`);
       source.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.qr) renderQR(data.qr);
-        else if (data.connected) onConnected();
+        if (data.qr) {
+          isFirstCheck = false;
+          renderQR(data.qr);
+        } else if (data.connected) {
+          if (isFirstCheck) {
+            fetch(`${WABOT_BASE}/qr`)
+              .then(r => r.json())
+              .then(resData => {
+                showConnectedState(resData.activeUser);
+              })
+              .catch(() => {
+                showConnectedState(null);
+              });
+            source.close();
+          } else {
+            onConnected();
+            source.close();
+          }
+        }
       };
       source.onerror = () => {
         console.warn("SSE terputus, fallback ke polling...");
@@ -267,6 +360,7 @@
         const res = await fetch(`${WABOT_BASE}/reset-auth`, { method: "DELETE" });
         const data = await res.json();
         console.log(data.message);
+        isFirstCheck = false;
         fetchQR();
       } catch {
         showError("Gagal memuat ulang QR");
