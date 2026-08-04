@@ -308,9 +308,10 @@
             <div class="invalid-feedback">Tanggal uji wajib diisi</div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Telepon</label>
-            <input name="phone" id="fPhone" class="form-control" placeholder="08xxxxxxxxxx" />
-            <div class="form-text">Format: 08xxxxxxxxxx (opsional)</div>
+            <label class="form-label">Telepon (WhatsApp)</label>
+            <input name="phone" id="fPhone" class="form-control" placeholder="08xxxxxxxxxx / 8xxxxxxxxxx" pattern="^(?:\+628|628|08|8)[0-9]{8,11}$" />
+            <div class="invalid-feedback">Format nomor WhatsApp tidak valid (contoh: 081234567890 atau 81234567890)</div>
+            <div class="form-text">Format: 08xxxxxxxxxx / 8xxxxxxxxxx (opsional, 9-13 digit)</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -554,14 +555,22 @@ loadSummary();
     const apiEdit = (id) => `/edit/${id}`;
     const apiDelete = (id) => `/delete/${id}`;
 
-    // normalize phone like backend expects (62...)
+    // normalize phone like backend expects (628...)
     function normalizePhone(phone) {
       if (!phone) return "";
-      phone = phone.trim().replace(/\s+/g,'').replace(/-/g,'');
-      if (phone.startsWith('+')) phone = phone.slice(1);
-      if (phone.startsWith('0')) phone = '62' + phone.slice(1);
-      if (!phone.startsWith('62')) phone = '62' + phone;
-      return phone;
+      phone = phone.toString().replace(/[\s\-\(\)\.]/g, '').trim();
+      if (phone.startsWith('+628')) phone = phone.slice(1);
+      else if (phone.startsWith('08')) phone = '62' + phone.slice(1);
+      else if (phone.startsWith('8')) phone = '62' + phone;
+      else if (phone.startsWith('628')) { /* ok */ }
+      else return '';
+      return /^628[0-9]{8,11}$/.test(phone) ? phone : '';
+    }
+
+    function isValidPhone(phone) {
+      if (!phone) return true;
+      phone = phone.toString().replace(/[\s\-\(\)\.]/g, '').trim();
+      return /^(?:\+628|628|08|8)[0-9]{8,11}$/.test(phone);
     }
 
     let table;
@@ -871,7 +880,22 @@ loadSummary();
           Swal.fire('Error', 'ID tidak ditemukan. Hanya edit yang diizinkan.', 'error');
           return;
         }
-        
+
+        const rawPhone = $('#fPhone').val().trim();
+        if (rawPhone && !isValidPhone(rawPhone)) {
+          $('#fPhone').addClass('is-invalid');
+          Swal.fire('Format Nomor Salah', 'Nomor WhatsApp tidak valid! Gunakan format 081234567890 atau 81234567890 (9-13 digit)', 'warning');
+          return;
+        }
+        $('#fPhone').removeClass('is-invalid');
+
+        const normPhone = normalizePhone(rawPhone);
+        if (rawPhone && !normPhone) {
+          $('#fPhone').addClass('is-invalid');
+          Swal.fire('Format Nomor Salah', 'Nomor WhatsApp tidak valid! Gunakan format 081234567890 atau 81234567890 (9-13 digit)', 'warning');
+          return;
+        }
+
         // Show loading state
         $('#saveSpinner').removeClass('d-none');
         $('#saveText').text('Menyimpan...');
@@ -883,7 +907,7 @@ loadSummary();
           no_uji: $('#fNoUji').val().trim(),
           jenis_kendaraan: $('#fJenisKendaraan').val(),
           test_date: $('#fDate').val(),
-          phone: normalizePhone($('#fPhone').val().trim())
+          phone: normPhone
         };
 
         // Edit only
@@ -892,9 +916,12 @@ loadSummary();
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify(payload)
         })
-        .then(r=>{
-          if (!r.ok) throw new Error('update failed');
-          return r.json();
+        .then(async r=>{
+          const data = await r.json().catch(()=>({}));
+          if (!r.ok) {
+            throw new Error(data.error || 'Update failed');
+          }
+          return data;
         })
         .then(()=> {
           // Reset loading state

@@ -7,6 +7,7 @@ if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 from datetime import datetime, date
+import re
 from scheduler.integrated_scheduler import init_scheduler
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
@@ -222,16 +223,25 @@ def classify_by_days(days_until):
 def normalize_phone(phone: str) -> str:
     if not phone:
         return ""
-    phone = phone.strip().replace(" ", "").replace("-", "")
-    if phone.startswith("+62"):
-        return phone[1:]
-    elif phone.startswith("62"):
-        return phone
-    elif phone.startswith("0"):
-        return "62" + phone[1:]
+    # Hapus spasi, strip, tanda kurung, dsb
+    phone = re.sub(r'[\s\-\(\)\.]', '', str(phone).strip())
+    if not phone:
+        return ""
+    if phone.startswith("+628"):
+        phone = phone[1:]
+    elif phone.startswith("08"):
+        phone = "62" + phone[1:]
     elif phone.startswith("8"):
-        return "62" + phone
-    return phone
+        phone = "62" + phone
+    elif phone.startswith("628"):
+        pass
+    else:
+        return ""
+    
+    # Validasi panjang: 628 diikuti 8-11 digit (total 11-14 digit angka)
+    if re.match(r'^628[0-9]{8,11}$', phone):
+        return phone
+    return ""
 
 def log_message(direction, phone, message_text, status="unknown", meta=None):
     try:
@@ -303,6 +313,9 @@ def build_message(record, status_label):
 
 def send_whatsapp_message(phone, message_text):
     phone_norm = normalize_phone(phone)
+    if not phone_norm:
+        print(f"⚠️ Nomor telepon kosong atau tidak valid: {phone}")
+        return {"status": "skipped", "reason": "invalid_or_empty_phone"}
     try:
         payload = {"phone": phone_norm, "message": message_text}
         print(f"📤 Sending to Node API {NODE_API} payload={payload}")
@@ -384,7 +397,12 @@ def http_add():
         datetime.strptime(data['test_date'], '%Y-%m-%d')
     except Exception:
         return jsonify({'error': 'test_date must be YYYY-MM-DD'}), 400
-    phone = data.get('phone') or ""
+    phone = (data.get('phone') or "").strip()
+    if phone:
+        norm_phone = normalize_phone(phone)
+        if not norm_phone:
+            return jsonify({'error': 'Format nomor WhatsApp tidak valid. Gunakan format 081234567890 atau 81234567890 (9-13 digit)'}), 400
+        phone = norm_phone
     no_uji = data.get('no_uji')
     jenis_kendaraan = data.get('jenis_kendaraan')
     add_reminder(data['name'], None, data['vehicle_number'], data['test_date'], {
@@ -456,6 +474,15 @@ def list_reminders_route():
 @app.route("/edit/<int:reminder_id>", methods=["PUT"])
 def edit_reminder(reminder_id):
     data = request.get_json(force=True)
+    phone = (data.get("phone") or "").strip()
+    if phone:
+        norm_phone = normalize_phone(phone)
+        if not norm_phone:
+            return jsonify({'error': 'Format nomor WhatsApp tidak valid. Gunakan format 081234567890 atau 81234567890 (9-13 digit)'}), 400
+        phone = norm_phone
+    else:
+        phone = ""
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -471,7 +498,7 @@ def edit_reminder(reminder_id):
             data.get("no_uji"),
             data.get("jenis_kendaraan"),
             data.get("test_date"),
-            data.get("phone"),
+            phone,
             reminder_id
         ))
         conn.commit()

@@ -629,10 +629,12 @@ app.post("/send", async (req, res) => {
 // === Helper ===
 function formatPhoneNumber(number) {
   number = number.toString().replace(/[^0-9+]/g, "");
-  if (number.startsWith("+")) number = number.slice(1);
-  if (number.startsWith("0")) number = "62" + number.slice(1);
-  if (!number.startsWith("62"))
-    throw new Error("Nomor WhatsApp harus diawali 62, +62, atau 0");
+  if (number.startsWith("+628")) number = number.slice(1);
+  else if (number.startsWith("08")) number = "62" + number.slice(1);
+  else if (number.startsWith("8")) number = "62" + number;
+  
+  if (!/^628[0-9]{8,11}$/.test(number))
+    throw new Error("Nomor WhatsApp tidak valid (harus nomor Indonesia berawalan 08/8/628, 9-13 digit)");
   return number + "@s.whatsapp.net";
 }
 
